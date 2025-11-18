@@ -30,6 +30,9 @@ Mở terminal/command prompt và chạy:
 
 ```bash
 git clone https://github.com/HuyHoangI4t/Quan_Ly_Chi_Tieu.git
+```
+
+```bash
 cd Quan_Ly_Chi_Tieu
 ```
 
