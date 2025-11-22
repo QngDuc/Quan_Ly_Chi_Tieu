@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinTrack - Quản Lý Chi Tiêu</title>
+    <title>SmartSpending - Quản Lý Chi Tiêu</title>
     <link rel="stylesheet" href="<?= BASE_URL; ?>/css/login_signup.css">
 </head>
 
@@ -46,7 +46,7 @@
 
             <div class="form-container sign-in-container">
                 <form id="signInForm">
-                    <h1>Đăng nhập vào FinTrack</h1>
+                    <h1>Đăng nhập vào SmartSpending </h1>
                     <div class="social-container">
                         <a href="#" class="social"><i class="fab fa-google"></i></a>
                     </div>
