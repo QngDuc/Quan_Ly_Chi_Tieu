@@ -117,8 +117,15 @@ class Transaction
         ";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$userId, $startDate, $endDate]);
+        $params = [$userId, $startDate, $endDate];
+        error_log("Line Chart Query Params - UserID: $userId, Start: $startDate, End: $endDate");
+        error_log("Line Chart SQL: " . $sql);
+        
+        $stmt->execute($params);
         $dbData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Debug: Log the query results
+        error_log("Line Chart Data from DB: " . json_encode($dbData));
 
         // Create a complete set of labels for the 3-month period
         $periodData = [];
@@ -144,14 +151,19 @@ class Transaction
         // Finalize arrays for Chart.js
         $labels = array_map(function($p) { return "Tháng " . ltrim(substr($p, 5), '0'); }, array_keys($periodData));
         
-        $incomeData = array_column($periodData, 'income');
-        $expenseData = array_column($periodData, 'expense');
+        $incomeData = array_values(array_column($periodData, 'income'));
+        $expenseData = array_values(array_column($periodData, 'expense'));
 
-        return [
+        $result = [
             'labels' => $labels,
             'income' => $incomeData,
             'expense' => $expenseData,
         ];
+        
+        // Debug: Log final result
+        error_log("Line Chart Result: " . json_encode($result));
+
+        return $result;
     }
 
     private function getTotalsForPeriod($userId, $startDate, $endDate)

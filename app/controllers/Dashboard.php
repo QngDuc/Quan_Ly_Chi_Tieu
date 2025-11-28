@@ -21,6 +21,7 @@ class Dashboard extends Controllers
     public function index($range = 'this_month')
     {
         $userId = $this->getCurrentUserId();
+        error_log("Dashboard - Current User ID: " . $userId);
         
         $dashboardData = $this->transactionModel->getDashboardData($userId, $range);
 

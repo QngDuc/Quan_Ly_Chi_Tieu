@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartSpending - Quản Lý Chi Tiêu</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="<?= BASE_URL; ?>/public/css/login_signup.css">
-    <script></script>
 </head>
 
 <body>
@@ -14,11 +14,21 @@
         <div class="container" id="container">
             <div class="form-container sign-up-container">
                 <form id="signUpForm">
-                    <h1>Tạo tài khoản</h1>
-                    <div class="social-container">
-                        <a href="#" class="social"><i class="fab fa-google"></i></a>
+                    <h1>Tạo Tài Khoản</h1>
+                    <p class="form-subtitle">Tham gia SmartSpending ngay hôm nay</p>
+                    <button type="button" class="btn-google" onclick="googleSignUp()">
+                        <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            <path fill="none" d="M0 0h48v48H0z"/>
+                        </svg>
+                        <span>Đăng ký với Google</span>
+                    </button>
+                    <div class="divider">
+                        <span>hoặc</span>
                     </div>
-                    <span>hoặc sử dụng email của bạn để đăng ký</span>
                     <div class="input-group">
                         <i class="fas fa-at icon"></i>
                         <input type="text" placeholder="Họ Tên" name="full_name"@/>
@@ -47,11 +57,21 @@
 
             <div class="form-container sign-in-container">
                 <form id="signInForm">
-                    <h1>Đăng nhập vào SmartSpending </h1>
-                    <div class="social-container">
-                        <a href="#" class="social"><i class="fab fa-google"></i></a>
+                    <h1>Đăng Nhập</h1>
+                    <p class="form-subtitle">Chào mừng trở lại SmartSpending</p>
+                    <button type="button" class="btn-google" onclick="googleSignIn()">
+                        <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            <path fill="none" d="M0 0h48v48H0z"/>
+                        </svg>
+                        <span>Đăng nhập với Google</span>
+                    </button>
+                    <div class="divider">
+                        <span>hoặc</span>
                     </div>
-                    <span>hoặc sử dụng tài khoản email của bạn</span>
                     <div class="input-group">
                         <i class="fas fa-envelope icon"></i>
                         <input type="email" placeholder="Email" name="email" autocomplete="email" required />
@@ -71,22 +91,29 @@
             <div class="overlay-container">
                 <div class="overlay">
                     <div class="overlay-panel overlay-left">
-                        <h1>Chào mừng trở lại!</h1>
-                        <p>Để giữ kết nối với chúng tôi, vui lòng đăng nhập bằng thông tin cá nhân của bạn</p>
-                        <button class="ghost" id="signIn">ĐĂNG NHẬP</button>
+                        <div class="overlay-content">
+                            <div class="logo-circle">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <h1>Chào mừng trở lại!</h1>
+                            <p>Tiếp tục quản lý chi tiêu thông minh của bạn</p>
+                            <button class="ghost" id="signIn">ĐĂNG NHẬP</button>
+                        </div>
                     </div>
                     <div class="overlay-panel overlay-right">
-                        <h1>Chào bạn!</h1>
-                        <p>Nhập thông tin cá nhân của bạn và bắt đầu hành trình với chúng tôi</p>
-                        <button class="ghost" id="signUp">ĐĂNG KÝ</button>
+                        <div class="overlay-content">
+                            <div class="logo-circle">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <h1>Xin chào!</h1>
+                            <p>Bắt đầu hành trình quản lý tài chính của bạn</p>
+                            <button class="ghost" id="signUp">ĐĂNG KÝ</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <script>
         const signUpButton = document.getElementById('signUp');
@@ -100,6 +127,55 @@
         signInButton.addEventListener('click', () => {
             container.classList.remove('right-panel-active');
         });
+
+        // Google Sign In
+        function googleSignIn() {
+            // Implement Google OAuth here
+            // For now, show a message
+            showAlert('Tính năng đăng nhập Google đang được phát triển', 'warning');
+            
+            // Example implementation:
+            // window.location.href = '<?= BASE_URL; ?>/login_signup/google_login';
+        }
+
+        // Google Sign Up
+        function googleSignUp() {
+            // Implement Google OAuth here
+            // For now, show a message
+            showAlert('Tính năng đăng ký Google đang được phát triển', 'warning');
+            
+            // Example implementation:
+            // window.location.href = '<?= BASE_URL; ?>/login_signup/google_signup';
+        }
+        
+        // Show alert function
+        function showAlert(message, type) {
+            // Remove existing alert if any
+            const existingAlert = document.querySelector('.alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type}`;
+            
+            const icon = type === 'success' ? 'check-circle' : 
+                        type === 'warning' ? 'exclamation-circle' : 
+                        type === 'error' ? 'times-circle' : 'info-circle';
+            
+            alertDiv.innerHTML = `
+                <i class="fas fa-${icon}"></i>
+                <span class="alert-message">${message}</span>
+                <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
+            `;
+            document.body.appendChild(alertDiv);
+
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                alertDiv.style.opacity = '0';
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 4000);
+        }
 
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);

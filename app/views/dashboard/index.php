@@ -53,20 +53,14 @@
                     <?php
                         // Logic to display the currently selected range
                         switch ($range ?? 'this_month') {
-                            case 'this_week':
-                                echo 'Tuần này';
-                                break;
                             case 'this_month':
                                 echo 'Tháng này';
                                 break;
                             case 'last_month':
                                 echo 'Tháng trước';
                                 break;
-                            case 'this_year':
-                                echo 'Năm nay';
-                                break;
                             default:
-                                echo 'Tháng này'; // Fallback
+                                echo 'Tháng này'; 
                                 break;
                         }
                     ?>
@@ -96,8 +90,6 @@
                     <h3>Phân Bổ Chi Tiêu</h3>
                     <span class="subtitle">Danh mục chi tiêu <?php 
                         switch ($range ?? 'this_month') {
-                            case 'this_week': echo 'tuần này'; break;
-                            case 'this_year': echo 'năm nay'; break;
                             default: echo 'tháng này'; break;
                         }
                     ?></span>

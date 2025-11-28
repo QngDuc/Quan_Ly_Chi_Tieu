@@ -3,7 +3,7 @@
 
 <footer>
     <div class="footer-content">
-        <p>© 2025 FinTrack. Bảo lưu mọi quyền.</p>
+        <p>© 2025 SmartSpending. Bảo lưu mọi quyền.</p>
         <div class="footer-links">
             <a href="<?php echo BASE_URL; ?>/privacy">Chính sách bảo mật</a>
             <a href="<?php echo BASE_URL; ?>/terms">Điều khoản sử dụng</a>

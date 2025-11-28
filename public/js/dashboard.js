@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
 
+    // Debug: Log raw data from PHP
+    console.log('Raw pieChartData:', window.pieChartData);
+    console.log('Raw lineChartData:', window.lineChartData);
+
     // --- Data for Line Chart (from PHP) ---
     let lineLabels = [];
     let lineIncomeData = [];
@@ -10,6 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
         lineExpenseData = window.lineChartData.expense;
     }
 
+    console.log('Line Chart Data:', { labels: lineLabels, income: lineIncomeData, expense: lineExpenseData });
+
     // --- Data for Pie Chart (from PHP) ---
     let pieLabels = ['Không có dữ liệu'];
     let pieData = [1];
@@ -17,6 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
         pieLabels = window.pieChartData.map(item => item.name);
         pieData = window.pieChartData.map(item => item.total);
     }
+    
+    console.log('Pie Chart Data:', { labels: pieLabels, data: pieData });
 
 
     // Bar Chart: Income vs Expense
@@ -97,25 +105,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Pie Chart: Expense Distribution
     const pieCtx = document.getElementById('pieChart');
     if (pieCtx) {
-        // A modern, clean color palette
+        // FinTrack color palette - vibrant colors for categories, grey for balance
         const pieColors = [
-            '#0ea5e9', // sky-500
-            '#f97316', // orange-500
-            '#10b981', // emerald-500
-            '#8b5cf6', // violet-500
-            '#f43f5e', // rose-500
-            '#eab308', // amber-500
-            '#3b82f6', // blue-500
-            '#9ca3af', // slate-400 (for remaining balance)
+            '#3B82F6', // Blue - Food
+            '#F97316', // Orange - Shopping  
+            '#10B981', // Green - Entertainment
+            '#EF4444', // Red - Travel
+            '#8B5CF6', // Purple - Transport
+            '#F59E0B', // Amber - Healthcare
+            '#EC4899', // Pink - Education
+            '#14B8A6', // Teal - Other categories
         ];
+        
+        const greyColor = '#9CA3AF'; // Grey for balance/others
         
         let backgroundColors = [];
         let colorIndex = 0;
         pieLabels.forEach(label => {
-            if (label === 'Số dư còn lại') {
-                backgroundColors.push(pieColors[7]); // Explicitly use grey
+            // Use grey only for "Số dư còn lại" or similar balance labels
+            if (label.includes('còn lại') || label.includes('Others') || label.includes('Khác')) {
+                backgroundColors.push(greyColor);
             } else {
-                backgroundColors.push(pieColors[colorIndex % (pieColors.length - 1)]);
+                backgroundColors.push(pieColors[colorIndex % pieColors.length]);
                 colorIndex++;
             }
         });
