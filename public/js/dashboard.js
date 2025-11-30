@@ -30,6 +30,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Bar Chart: Income vs Expense
     const lineCtx = document.getElementById('lineChart');
     if (lineCtx) {
+        // Destroy existing chart if it exists
+        const existingLineChart = Chart.getChart(lineCtx);
+        if (existingLineChart) {
+            existingLineChart.destroy();
+        }
+        
         new Chart(lineCtx, {
             type: 'bar',
             data: {
@@ -105,6 +111,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Pie Chart: Expense Distribution
     const pieCtx = document.getElementById('pieChart');
     if (pieCtx) {
+        // Destroy existing chart if it exists
+        const existingPieChart = Chart.getChart(pieCtx);
+        if (existingPieChart) {
+            existingPieChart.destroy();
+        }
+        
         // FinTrack color palette - vibrant colors for categories, grey for balance
         const pieColors = [
             '#3B82F6', // Blue - Food

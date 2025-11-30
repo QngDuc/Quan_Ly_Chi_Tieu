@@ -54,4 +54,17 @@ class User
         $stmt->execute([$id]);
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
+
+    public function updateProfile($userId, $data)
+    {
+        $stmt = $this->db->prepare("UPDATE users SET full_name = ?, email = ? WHERE id = ?");
+        return $stmt->execute([$data['name'], $data['email'], $userId]);
+    }
+
+    public function updatePassword($userId, $newPassword)
+    {
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        $stmt = $this->db->prepare("UPDATE users SET password = ? WHERE id = ?");
+        return $stmt->execute([$hashedPassword, $userId]);
+    }
 }

@@ -18,15 +18,20 @@ class Dashboard extends Controllers
         $this->transactionModel = $this->model('Transaction');
     }
 
-    public function index($range = 'this_month')
+    public function index($range = null)
     {
         $userId = $this->getCurrentUserId();
         error_log("Dashboard - Current User ID: " . $userId);
         
+        // Default to current month if no range provided
+        if (!$range) {
+            $range = date('Y-m');
+        }
+        
         $dashboardData = $this->transactionModel->getDashboardData($userId, $range);
 
-        // Determine subtitle for line chart (always monthly trend now)
-        $lineChartSubtitle = 'Xu hướng theo tháng';
+        // Determine subtitle for line chart (always shows 3 recent months)
+        $lineChartSubtitle = '3 tháng gần nhất';
 
         $data = [
             'title' => 'Tổng quan',

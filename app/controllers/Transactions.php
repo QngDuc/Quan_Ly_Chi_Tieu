@@ -18,16 +18,30 @@ class Transactions extends Controllers
         $this->categoryModel = $this->model('Category');
     }
 
-    public function index($range = 'this_month', $categoryId = 'all')
+    public function index($range = null, $categoryId = 'all', $page = 1)
     {
         $userId = $this->getCurrentUserId();
 
+        // Default to current month if no range provided
+        if (!$range) {
+            $range = date('Y-m');
+        }
+
         $filters = [
-            'range' => ($range === 'all') ? null : $range,
+            'range' => $range,
             'category_id' => ($categoryId === 'all') ? null : $categoryId,
         ];
         
-        $transactions = $this->transactionModel->getAllByUser($userId, $filters);
+        // Pagination settings
+        $perPage = 7;
+        $offset = ($page - 1) * $perPage;
+        
+        $allTransactions = $this->transactionModel->getAllByUser($userId, $filters);
+        $totalTransactions = count($allTransactions);
+        $totalPages = ceil($totalTransactions / $perPage);
+        
+        // Get paginated transactions
+        $transactions = array_slice($allTransactions, $offset, $perPage);
         $categories = $this->categoryModel->getAll();
 
         $data = [
@@ -35,7 +49,11 @@ class Transactions extends Controllers
             'transactions' => $transactions,
             'categories' => $categories,
             'current_range' => $range,
-            'current_category' => $categoryId
+            'current_category' => $categoryId,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
+            'total_transactions' => $totalTransactions,
+            'per_page' => $perPage
         ];
 
         $this->view('transactions/index', $data);
@@ -72,6 +90,9 @@ class Transactions extends Controllers
 
     public function api_add()
     {
+        // Clear any output buffer to prevent PHP errors from corrupting JSON
+        if (ob_get_length()) ob_clean();
+        
         header('Content-Type: application/json');
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -127,6 +148,9 @@ class Transactions extends Controllers
 
     public function api_update($id)
     {
+        // Clear any output buffer to prevent PHP errors from corrupting JSON
+        if (ob_get_length()) ob_clean();
+        
         header('Content-Type: application/json');
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -142,7 +166,7 @@ class Transactions extends Controllers
             $type = $data['type'] ?? 'expense';
             $amount = floatval($data['amount'] ?? 0);
             $categoryId = intval($data['category_id'] ?? 0);
-            $date = $data['date'] ?? date('Y-m-d');
+            $date = $data['transaction_date'] ?? $data['date'] ?? date('Y-m-d');
             $description = trim($data['description'] ?? '');
 
             if ($amount <= 0 || empty($categoryId)) {
@@ -166,6 +190,9 @@ class Transactions extends Controllers
 
     public function api_delete($id)
     {
+        // Clear any output buffer to prevent PHP errors from corrupting JSON
+        if (ob_get_length()) ob_clean();
+        
         header('Content-Type: application/json');
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

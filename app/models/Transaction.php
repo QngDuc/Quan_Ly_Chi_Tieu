@@ -22,7 +22,16 @@ class Transaction
     public function getDashboardData($userId, $range = 'this_month')
     {
         // 1. Determine Current and Previous Date Ranges
-        list($startDate, $endDate, $prevStartDate, $prevEndDate) = $this->getPeriodDates($range);
+        // Check if range is in YYYY-MM format (specific month)
+        if (preg_match('/^\d{4}-\d{2}$/', $range)) {
+            $startDate = $range . '-01';
+            $endDate = date('Y-m-t', strtotime($startDate));
+            // Previous month for comparison
+            $prevStartDate = date('Y-m-01', strtotime($startDate . ' -1 month'));
+            $prevEndDate = date('Y-m-t', strtotime($prevStartDate));
+        } else {
+            list($startDate, $endDate, $prevStartDate, $prevEndDate) = $this->getPeriodDates($range);
+        }
 
         // 2. Get Totals for Both Periods
         $currentTotals = $this->getTotalsForPeriod($userId, $startDate, $endDate);
@@ -33,7 +42,14 @@ class Transaction
         $expenseTrend = $this->calculatePercentageChange($previousTotals['expense'], $currentTotals['expense']);
         
         // --- Get Total Balance (unaffected by date range) ---
-        $stmtTotalBalance = $this->db->prepare("SELECT COALESCE(SUM(amount), 0) AS balance FROM transactions WHERE user_id = ?");
+        // Balance = Total Income - Total Expense (absolute value)
+        $stmtTotalBalance = $this->db->prepare("
+            SELECT 
+                COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) - 
+                COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS balance 
+            FROM transactions 
+            WHERE user_id = ?
+        ");
         $stmtTotalBalance->execute([$userId]);
         $totalBalance = $stmtTotalBalance->fetch(PDO::FETCH_ASSOC);
 
@@ -181,9 +197,15 @@ class Transaction
     
     private function calculatePercentageChange($previous, $current)
     {
-        if ($previous == 0) {
-            return ($current > 0) ? 100 : 0; // If previous was 0, any increase is 100%
+        // If both are 0, no meaningful change
+        if ($previous == 0 && $current == 0) {
+            return null; // Return null to indicate no data for comparison
         }
+        
+        if ($previous == 0) {
+            return ($current > 0) ? 100 : -100; // If previous was 0, any change is 100%
+        }
+        
         return round((($current - $previous) / $previous) * 100);
     }
 
@@ -202,8 +224,9 @@ class Transaction
                 $prevEndDate = date('Y-12-31', strtotime('-1 year'));
                 break;
             case 'this_month':
-                $startDate = date('Y-m-01');
-                $endDate = date('Y-m-t');
+                // Get last 3 months (current month - 2 months)
+                $startDate = date('Y-m-01', strtotime('-2 months'));
+                $endDate = date('Y-m-t'); // End of current month
                 $prevStartDate = date('Y-m-01', strtotime('first day of last month'));
                 $prevEndDate = date('Y-m-t', strtotime('last day of last month'));
                 break;
@@ -225,8 +248,13 @@ class Transaction
 
     public function createTransaction($userId, $categoryId, $amount, $type, $date, $description)
     {
+        // Get category type from database to determine if income or expense
+        $categoryStmt = $this->db->prepare("SELECT type FROM categories WHERE id = ?");
+        $categoryStmt->execute([$categoryId]);
+        $category = $categoryStmt->fetch(PDO::FETCH_ASSOC);
+        
         // Ensure amount is stored correctly: negative for expense, positive for income
-        $finalAmount = ($type === 'expense') ? -abs($amount) : abs($amount);
+        $finalAmount = ($category && $category['type'] === 'income') ? abs($amount) : -abs($amount);
 
         $stmt = $this->db->prepare(
             "INSERT INTO transactions (user_id, category_id, amount, transaction_date, description) VALUES (?, ?, ?, ?, ?)"
@@ -238,7 +266,7 @@ class Transaction
     public function getAllByUser($userId, $filters = [])
     {
         $sql = "
-            SELECT t.id, t.description, t.amount, t.transaction_date, c.name as category_name
+            SELECT t.id, t.description, t.amount, t.transaction_date, c.name as category_name, t.category_id
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
         ";
@@ -246,7 +274,13 @@ class Transaction
         $params = [$userId];
 
         if (!empty($filters['range'])) {
-            list($startDate, $endDate) = $this->getPeriodDates($filters['range']);
+            // Check if range is in YYYY-MM format (specific month)
+            if (preg_match('/^\d{4}-\d{2}$/', $filters['range'])) {
+                $startDate = $filters['range'] . '-01';
+                $endDate = date('Y-m-t', strtotime($startDate));
+            } else {
+                list($startDate, $endDate) = $this->getPeriodDates($filters['range']);
+            }
             $where[] = "t.transaction_date BETWEEN ? AND ?";
             $params[] = $startDate;
             $params[] = $endDate;
@@ -265,6 +299,80 @@ class Transaction
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function deleteTransaction($id, $userId)
+    {
+        $sql = "DELETE FROM transactions WHERE id = ? AND user_id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$id, $userId]);
+    }
+
+    public function updateTransaction($id, $userId, $categoryId, $amount, $type, $date, $description)
+    {
+        // Determine if amount should be negative based on category type
+        $categoryStmt = $this->db->prepare("SELECT type FROM categories WHERE id = ?");
+        $categoryStmt->execute([$categoryId]);
+        $category = $categoryStmt->fetch(PDO::FETCH_ASSOC);
+        
+        $finalAmount = ($category && $category['type'] === 'income') ? abs($amount) : -abs($amount);
+        
+        $sql = "UPDATE transactions 
+                SET category_id = ?, amount = ?, description = ?, transaction_date = ?
+                WHERE id = ? AND user_id = ?";
+        
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$categoryId, $finalAmount, $description, $date, $id, $userId]);
+    }
+
+    public function getMonthTotals($userId, $startDate, $endDate)
+    {
+        $stmt = $this->db->prepare("
+            SELECT 
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expense
+            FROM transactions 
+            WHERE user_id = ? 
+            AND transaction_date BETWEEN ? AND ?
+        ");
+        $stmt->execute([$userId, $startDate, $endDate]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getCategoryBreakdown($userId, $startDate, $endDate)
+    {
+        $stmt = $this->db->prepare("
+            SELECT c.name, SUM(ABS(t.amount)) as total
+            FROM transactions t
+            JOIN categories c ON t.category_id = c.id
+            WHERE t.user_id = ? 
+            AND t.amount < 0
+            AND t.transaction_date BETWEEN ? AND ?
+            GROUP BY c.id, c.name
+            ORDER BY total DESC
+            LIMIT 5
+        ");
+        $stmt->execute([$userId, $startDate, $endDate]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function deleteAllByUser($userId)
+    {
+        $sql = "DELETE FROM transactions WHERE user_id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$userId]);
+    }
+
+    public function getTransactionsByUser($userId)
+    {
+        $sql = "SELECT t.*, c.name as category_name 
+                FROM transactions t
+                LEFT JOIN categories c ON t.category_id = c.id
+                WHERE t.user_id = ?
+                ORDER BY t.transaction_date DESC, t.id DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

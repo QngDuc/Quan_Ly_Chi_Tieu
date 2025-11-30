@@ -1,6 +1,9 @@
     </main>
 </div>
 
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
 <footer>
     <div class="footer-content">
         <p>© 2025 SmartSpending. Bảo lưu mọi quyền.</p>
