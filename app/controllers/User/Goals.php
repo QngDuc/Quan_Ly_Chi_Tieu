@@ -1,5 +1,5 @@
 <?php
-namespace App\Controllers;
+namespace App\Controllers\User;
 
 use App\Core\Controllers;
 use App\Middleware\CsrfProtection;

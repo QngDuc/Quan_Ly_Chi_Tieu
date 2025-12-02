@@ -1,10 +1,10 @@
 <?php
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
 use App\Core\Controllers;
 use App\Models\User;
 
-class Admin extends Controllers
+class Users extends Controllers
 {
     protected $userModel;
 
@@ -23,7 +23,7 @@ class Admin extends Controllers
 
     public function index()
     {
-        $this->redirect('/admin/users');
+        $this->users();
     }
 
     /**

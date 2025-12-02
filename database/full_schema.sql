@@ -267,8 +267,11 @@ INSERT INTO `categories` (`name`, `type`, `color`, `icon`, `is_default`) VALUES
 -- VIEWS
 -- ============================================
 
+DROP VIEW IF EXISTS `v_monthly_summary`;
+DROP VIEW IF EXISTS `v_category_summary`;
+
 -- View: Monthly summary
-CREATE OR REPLACE VIEW `v_monthly_summary` AS
+CREATE VIEW `v_monthly_summary` AS
 SELECT 
     t.user_id,
     DATE_FORMAT(t.date, '%Y-%m') AS month,
@@ -279,7 +282,7 @@ FROM transactions t
 GROUP BY t.user_id, month, t.type;
 
 -- View: Category summary
-CREATE OR REPLACE VIEW `v_category_summary` AS
+CREATE VIEW `v_category_summary` AS
 SELECT 
     t.user_id,
     c.id AS category_id,
@@ -294,6 +297,9 @@ GROUP BY t.user_id, c.id, c.name, c.type;
 -- ============================================
 -- STORED PROCEDURES
 -- ============================================
+
+DROP PROCEDURE IF EXISTS `sp_get_user_balance`;
+DROP PROCEDURE IF EXISTS `sp_get_budget_status`;
 
 DELIMITER $$
 
@@ -325,12 +331,11 @@ BEGIN
     WHERE b.id = p_budget_id AND b.user_id = p_user_id
     GROUP BY b.id, b.amount;
 END$$
-
-DELIMITER ;
-
 -- ============================================
 -- TRIGGERS
 -- ============================================
+
+DROP TRIGGER IF EXISTS `trg_transactions_set_type`;
 
 DELIMITER $$
 
@@ -345,25 +350,6 @@ BEGIN
 END$$
 
 DELIMITER ;
-
-
-
-ALTER TABLE `users` 
-ADD COLUMN `role` enum('user','admin') NOT NULL DEFAULT 'user' COMMENT 'Vai trò: user hoặc admin' AFTER `full_name`;
-
--- Add is_active column
-ALTER TABLE `users` 
-ADD COLUMN `is_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Trạng thái tài khoản: 1=active, 0=disabled' AFTER `role`;
-
--- Add index for role
-ALTER TABLE `users` 
-ADD KEY `idx_role` (`role`);
-
--- Update existing users to be active
-UPDATE `users` SET `is_active` = 1 WHERE `is_active` IS NULL;
-
--- Set user id = 1 as admin
-UPDATE `users` SET `role` = 'admin' WHERE `id` = 1;
 
 -- ============================================
 -- ADMIN SETUP (Optional - For existing users)
