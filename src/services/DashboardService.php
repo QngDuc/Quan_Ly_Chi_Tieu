@@ -7,9 +7,9 @@ class DashboardService
 {
     private $transactionModel;
 
-    public function __construct()
+    public function __construct(Transaction $transactionModel)
     {
-        $this->transactionModel = new Transaction();
+        $this->transactionModel = $transactionModel;
     }
 
     public function getDashboardData($userId, $range = 'this_month')
@@ -60,6 +60,13 @@ class DashboardService
 
         // --- 4. Get Data for Line Chart ---
         $lineChartData = $this->transactionModel->getLineChartData($userId);
+
+        // Calculate Net Income and Trend Class for View
+        $netIncome = $totals['income'] - $totals['expense'];
+        $netTrendClass = ($netIncome >= 0) ? 'up' : 'down';
+        
+        $totals['net_income'] = $netIncome;
+        $totals['net_trend_class'] = $netTrendClass;
 
         return [
             'totals' => $totals,

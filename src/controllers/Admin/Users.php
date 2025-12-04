@@ -2,6 +2,7 @@
 namespace App\Controllers\Admin;
 
 use App\Core\Controllers;
+use App\Core\Response;
 use App\Models\User;
 use App\Middleware\AuthCheck;
 
@@ -41,31 +42,28 @@ class Users extends Controllers
      */
     public function api_toggle_user_status()
     {
-        header('Content-Type: application/json');
-        
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-            exit();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Invalid request method', null, 405);
+            return;
         }
 
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $this->request->json();
         $userId = $data['user_id'] ?? 0;
         $isActive = $data['is_active'] ?? 1;
 
         // Không cho phép vô hiệu hóa chính mình
-        if ($userId == $_SESSION['user_id']) {
-            echo json_encode(['success' => false, 'message' => 'Không thể vô hiệu hóa tài khoản của chính bạn']);
-            exit();
+        if ($userId == $this->getCurrentUserId()) {
+            Response::errorResponse('Không thể vô hiệu hóa tài khoản của chính bạn');
+            return;
         }
 
         $result = $this->userModel->updateUserStatus($userId, $isActive);
         
         if ($result) {
-            echo json_encode(['success' => true, 'message' => 'Cập nhật trạng thái thành công']);
+            Response::successResponse('Cập nhật trạng thái thành công');
         } else {
-            echo json_encode(['success' => false, 'message' => 'Có lỗi xảy ra']);
+            Response::errorResponse('Có lỗi xảy ra');
         }
-        exit();
     }
 
     /**
@@ -73,41 +71,38 @@ class Users extends Controllers
      */
     public function api_update_user_role()
     {
-        header('Content-Type: application/json');
-        
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-            exit();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Invalid request method', null, 405);
+            return;
         }
 
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $this->request->json();
         $userId = $data['user_id'] ?? 0;
         $role = $data['role'] ?? 'user';
 
         // Không cho phép thay đổi role của user id = 1
         if ($userId == 1) {
-            echo json_encode(['success' => false, 'message' => 'Không thể thay đổi quyền của tài khoản admin chính']);
-            exit();
+            Response::errorResponse('Không thể thay đổi quyền của tài khoản admin chính');
+            return;
         }
 
         // Không cho phép tự thay đổi role của chính mình
-        if ($userId == $_SESSION['user_id']) {
-            echo json_encode(['success' => false, 'message' => 'Không thể thay đổi quyền của chính bạn']);
-            exit();
+        if ($userId == $this->getCurrentUserId()) {
+            Response::errorResponse('Không thể thay đổi quyền của chính bạn');
+            return;
         }
 
         if (!in_array($role, ['user', 'admin'])) {
-            echo json_encode(['success' => false, 'message' => 'Vai trò không hợp lệ']);
-            exit();
+            Response::errorResponse('Vai trò không hợp lệ');
+            return;
         }
 
         $result = $this->userModel->updateUserRole($userId, $role);
         
         if ($result) {
-            echo json_encode(['success' => true, 'message' => 'Cập nhật vai trò thành công']);
+            Response::successResponse('Cập nhật vai trò thành công');
         } else {
-            echo json_encode(['success' => false, 'message' => 'Có lỗi xảy ra']);
+            Response::errorResponse('Có lỗi xảy ra');
         }
-        exit();
     }
 }

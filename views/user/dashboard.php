@@ -9,13 +9,9 @@
         <div class="card stat-card">
             <h3>Tổng Số Dư</h3>
             <div class="value"><?php echo number_format($totals['balance'] ?? 0, 0, ',', '.'); ?> ₫</div>
-            <?php
-            $netIncome = ($totals['income'] ?? 0) - ($totals['expense'] ?? 0);
-            $netTrendClass = ($netIncome >= 0) ? 'up' : 'down';
-            ?>
-            <div class="trend <?php echo $netTrendClass; ?>">
-                <i class="fas fa-arrow-trend-<?php echo $netTrendClass; ?>"></i>
-                <?php echo ($netIncome >= 0) ? '+' : ''; ?><?php echo number_format($netIncome, 0, ',', '.'); ?> ₫ tháng này
+            <div class="trend <?php echo $totals['net_trend_class']; ?>">
+                <i class="fas fa-arrow-trend-<?php echo $totals['net_trend_class']; ?>"></i>
+                <?php echo ($totals['net_income'] >= 0) ? '+' : ''; ?><?php echo number_format($totals['net_income'], 0, ',', '.'); ?> ₫ tháng này
             </div>
         </div>
         <div class="card stat-card">

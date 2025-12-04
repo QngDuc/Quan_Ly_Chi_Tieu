@@ -69,9 +69,45 @@ class Response
         exit();
     }
 
-    public function error(string $message = 'Internal Server Error', int $statusCode = 500): void
+    /**
+     * Send success response (Static helper)
+     * @param string $message Success message
+     * @param mixed $data Response data
+     * @param int $statusCode HTTP status code
+     */
+    public static function successResponse($message = 'Success', $data = null, $statusCode = 200)
     {
-        $this->json(['error' => $message], $statusCode)->send();
-        exit();
+        http_response_code($statusCode);
+        header('Content-Type: application/json; charset=utf-8');
+        
+        if (ob_get_length()) ob_clean();
+        
+        echo json_encode([
+            'success' => true,
+            'message' => $message,
+            'data' => $data
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /**
+     * Send error response (Static helper)
+     * @param string $message Error message
+     * @param mixed $data Additional error data
+     * @param int $statusCode HTTP status code
+     */
+    public static function errorResponse($message = 'Error', $data = null, $statusCode = 400)
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json; charset=utf-8');
+        
+        if (ob_get_length()) ob_clean();
+        
+        echo json_encode([
+            'success' => false,
+            'message' => $message,
+            'data' => $data
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }

@@ -2,7 +2,7 @@
 namespace App\Controllers\User;
 
 use App\Core\Controllers;
-use App\Core\ApiResponse;
+use App\Core\Response;
 use App\Services\Validator;
 use App\Middleware\CsrfProtection;
 use App\Middleware\AuthCheck;
@@ -21,7 +21,7 @@ class Profile extends Controllers
 
     public function index() {
         $userModel = $this->model('User');
-        $user = $userModel->getUserById($_SESSION['user_id']);
+        $user = $userModel->getUserById($this->getCurrentUserId());
         
         $this->view('user/profile', [
             'user' => $user,
@@ -30,24 +30,26 @@ class Profile extends Controllers
     }
 
     public function api_update() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
         try {
             // Verify CSRF token
             CsrfProtection::verify();
             
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $this->request->json();
             
             // Validate data
             $validator = new Validator();
             if (!$validator->validateProfile($data)) {
-                ApiResponse::validationError($validator->getErrors(), $validator->getFirstError());
+                Response::errorResponse($validator->getFirstError(), $validator->getErrors());
+                return;
             }
 
             $userModel = $this->model('User');
-            $userId = $_SESSION['user_id'];
+            $userId = $this->getCurrentUserId();
             
             // Get validated data
             $validData = $validator->getData();
@@ -59,36 +61,38 @@ class Profile extends Controllers
             ]);
 
             if ($success) {
-                $_SESSION['user_name'] = $validData['name'];
-                $_SESSION['full_name'] = $validData['name'];
-                ApiResponse::success('Cập nhật thành công', ['user' => $validData]);
+                $this->request->setSession('user_name', $validData['name']);
+                $this->request->setSession('full_name', $validData['name']);
+                Response::successResponse('Cập nhật thành công', ['user' => $validData]);
             } else {
-                ApiResponse::error('Không thể cập nhật thông tin');
+                Response::errorResponse('Không thể cập nhật thông tin');
             }
         } catch (Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
     public function api_change_password() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
         try {
             // Verify CSRF token
             CsrfProtection::verify();
             
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $this->request->json();
             
             // Validate data
             $validator = new Validator();
             if (!$validator->validatePasswordChange($data)) {
-                ApiResponse::validationError($validator->getErrors(), $validator->getFirstError());
+                Response::errorResponse($validator->getFirstError(), $validator->getErrors());
+                return;
             }
 
             $userModel = $this->model('User');
-            $userId = $_SESSION['user_id'];
+            $userId = $this->getCurrentUserId();
             
             // Get validated data
             $validData = $validator->getData();
@@ -96,25 +100,27 @@ class Profile extends Controllers
             // Verify current password
             $user = $userModel->getUserById($userId);
             if (!password_verify($validData['current_password'], $user['password'])) {
-                ApiResponse::error('Mật khẩu hiện tại không đúng', null, 401);
+                Response::errorResponse('Mật khẩu hiện tại không đúng', null, 401);
+                return;
             }
             
             // Update password
             $success = $userModel->updatePassword($userId, $validData['new_password']);
 
             if ($success) {
-                ApiResponse::success('Đổi mật khẩu thành công');
+                Response::successResponse('Đổi mật khẩu thành công');
             } else {
-                ApiResponse::error('Không thể đổi mật khẩu');
+                Response::errorResponse('Không thể đổi mật khẩu');
             }
         } catch (Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
     public function api_clear_data() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
         try {
@@ -123,25 +129,25 @@ class Profile extends Controllers
             
             $userModel = $this->model('User');
             $transactionModel = $this->model('Transaction');
-            $userId = $_SESSION['user_id'];
+            $userId = $this->getCurrentUserId();
             
             // Delete all transactions for this user
             $success = $transactionModel->deleteAllByUser($userId);
 
             if ($success) {
-                ApiResponse::success('Đã xóa tất cả dữ liệu');
+                Response::successResponse('Đã xóa tất cả dữ liệu');
             } else {
-                ApiResponse::error('Không thể xóa dữ liệu');
+                Response::errorResponse('Không thể xóa dữ liệu');
             }
         } catch (Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
     public function export_data() {
         try {
             $transactionModel = $this->model('Transaction');
-            $userId = $_SESSION['user_id'];
+            $userId = $this->getCurrentUserId();
             
             // Get all transactions for this user
             $transactions = $transactionModel->getTransactionsByUser($userId);

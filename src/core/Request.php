@@ -92,12 +92,6 @@ class Request
         return array_merge($_GET, $_POST);
     }
 
-    public function json(): ?array
-    {
-        $data = file_get_contents('php://input');
-        return json_decode($data, true);
-    }
-
     public function setRouteParams(array $params): void
     {
         $this->routeParams = $params;

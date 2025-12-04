@@ -2,7 +2,7 @@
 namespace App\Controllers\User;
 
 use App\Core\Controllers;
-use App\Core\ApiResponse;
+use App\Core\Response;
 use App\Services\Validator;
 use App\Middleware\CsrfProtection;
 use App\Middleware\AuthCheck;
@@ -239,10 +239,10 @@ class Budgets extends Controllers
     {
         try {
             $userId = $this->getCurrentUserId();
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $this->request->json();
             
             if (!isset($data['period']) || !isset($data['percentages'])) {
-                ApiResponse::error('Missing required fields', 400);
+                Response::errorResponse('Missing required fields', null, 400);
                 return;
             }
             
@@ -252,16 +252,16 @@ class Budgets extends Controllers
             // Validate percentages sum to 100
             $total = array_sum($percentages);
             if ($total != 100) {
-                ApiResponse::error('Percentages must sum to 100%', 400);
+                Response::errorResponse('Percentages must sum to 100%', null, 400);
                 return;
             }
             
             $this->updatePercentages($userId, $period, $percentages);
             $jarSummary = $this->getJarSummary($userId, $period);
             
-            ApiResponse::success('Cập nhật tỷ lệ thành công', ['jar_summary' => $jarSummary]);
+            Response::successResponse('Cập nhật tỷ lệ thành công', ['jar_summary' => $jarSummary]);
         } catch (\Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
     
@@ -272,10 +272,10 @@ class Budgets extends Controllers
     {
         try {
             $userId = $this->getCurrentUserId();
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $this->request->json();
             
             if (!isset($data['period']) || !isset($data['income'])) {
-                ApiResponse::error('Missing required fields', 400);
+                Response::errorResponse('Missing required fields', null, 400);
                 return;
             }
             
@@ -285,9 +285,9 @@ class Budgets extends Controllers
             $this->updateIncome($userId, $period, $income);
             $jarSummary = $this->getJarSummary($userId, $period);
             
-            ApiResponse::success('Cập nhật thu nhập thành công', ['jar_summary' => $jarSummary]);
+            Response::successResponse('Cập nhật thu nhập thành công', ['jar_summary' => $jarSummary]);
         } catch (\Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
@@ -297,8 +297,9 @@ class Budgets extends Controllers
      */
     public function api_get_jars()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'GET') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
         try {
@@ -313,12 +314,12 @@ class Budgets extends Controllers
             
             $totalPercentage = $jarModel->getTotalPercentage($userId);
             
-            ApiResponse::success('Lấy danh sách hũ thành công', [
+            Response::successResponse('Lấy danh sách hũ thành công', [
                 'jars' => $jars,
                 'total_percentage' => $totalPercentage
             ]);
         } catch (\Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
@@ -328,19 +329,20 @@ class Budgets extends Controllers
      */
     public function api_create_jar()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
-        CsrfProtection::validateToken();
+        CsrfProtection::verify();
 
         try {
             $userId = $this->getCurrentUserId();
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = $this->request->json();
             
             // Validate input
             if (empty($input['name']) || !isset($input['percentage'])) {
-                ApiResponse::error('Vui lòng nhập tên hũ và phần trăm', 400);
+                Response::errorResponse('Vui lòng nhập tên hũ và phần trăm', null, 400);
                 return;
             }
 
@@ -351,7 +353,7 @@ class Budgets extends Controllers
             $newTotal = $currentTotal + floatval($input['percentage']);
             
             if ($newTotal > 100) {
-                ApiResponse::error('Tổng phần trăm không được vượt quá 100%', 400);
+                Response::errorResponse('Tổng phần trăm không được vượt quá 100%', null, 400);
                 return;
             }
 
@@ -375,12 +377,12 @@ class Budgets extends Controllers
                     }
                 }
                 
-                ApiResponse::success('Tạo hũ thành công', ['jar_id' => $jarId]);
+                Response::successResponse('Tạo hũ thành công', ['jar_id' => $jarId]);
             } else {
-                ApiResponse::serverError('Không thể tạo hũ');
+                Response::errorResponse('Không thể tạo hũ');
             }
         } catch (\Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
@@ -390,22 +392,23 @@ class Budgets extends Controllers
      */
     public function api_update_jar($id)
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
-        CsrfProtection::validateToken();
+        CsrfProtection::verify();
 
         try {
             $userId = $this->getCurrentUserId();
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = $this->request->json();
             
             $jarModel = new \App\Models\JarTemplate();
             
             // Check if jar exists
             $jar = $jarModel->getById($id, $userId);
             if (!$jar) {
-                ApiResponse::notFound('Không tìm thấy hũ');
+                Response::errorResponse('Không tìm thấy hũ', null, 404);
                 return;
             }
 
@@ -414,7 +417,7 @@ class Budgets extends Controllers
             $newTotal = $currentTotal - floatval($jar['percentage']) + floatval($input['percentage']);
             
             if ($newTotal > 100) {
-                ApiResponse::error('Tổng phần trăm không được vượt quá 100%', 400);
+                Response::errorResponse('Tổng phần trăm không được vượt quá 100%', null, 400);
                 return;
             }
 
@@ -430,12 +433,12 @@ class Budgets extends Controllers
             $result = $jarModel->update($id, $userId, $data);
             
             if ($result) {
-                ApiResponse::success('Cập nhật hũ thành công');
+                Response::successResponse('Cập nhật hũ thành công');
             } else {
-                ApiResponse::serverError('Không thể cập nhật hũ');
+                Response::errorResponse('Không thể cập nhật hũ');
             }
         } catch (\Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
@@ -445,11 +448,12 @@ class Budgets extends Controllers
      */
     public function api_delete_jar($id)
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
-        CsrfProtection::validateToken();
+        CsrfProtection::verify();
 
         try {
             $userId = $this->getCurrentUserId();
@@ -458,12 +462,12 @@ class Budgets extends Controllers
             $result = $jarModel->delete($id, $userId);
             
             if ($result) {
-                ApiResponse::success('Xóa hũ thành công');
+                Response::successResponse('Xóa hũ thành công');
             } else {
-                ApiResponse::serverError('Không thể xóa hũ');
+                Response::errorResponse('Không thể xóa hũ');
             }
         } catch (\Exception $e) {
-            ApiResponse::serverError($e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 

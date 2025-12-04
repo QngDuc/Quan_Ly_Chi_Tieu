@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use App\Core\Request;
+
 final class CsrfProtection
 {
     private static string $sessionKey = 'csrf_token';
@@ -11,27 +13,22 @@ final class CsrfProtection
 
     public static function generateToken(): string
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
+        $request = new Request();
         $token = bin2hex(random_bytes(32));
-        $_SESSION[self::$sessionKey] = [
+        $request->setSession(self::$sessionKey, [
             'token' => $token,
             'time' => time(),
-        ];
+        ]);
 
         return $token;
     }
 
     public static function getToken(): string
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $request = new Request();
+        $tokenData = $request->session(self::$sessionKey);
 
-        if (!empty($_SESSION[self::$sessionKey])) {
-            $tokenData = $_SESSION[self::$sessionKey];
+        if (!empty($tokenData)) {
             if ((time() - ($tokenData['time'] ?? 0)) < self::$tokenLifetime && !empty($tokenData['token'])) {
                 return (string) $tokenData['token'];
             }
@@ -42,33 +39,31 @@ final class CsrfProtection
 
     public static function validateToken(?string $token = null): bool
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $request = new Request();
 
         if ($token === null) {
-            if (isset($_POST['csrf_token'])) {
-                $token = (string) $_POST['csrf_token'];
-            } elseif (isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
-                $token = (string) $_SERVER['HTTP_X_CSRF_TOKEN'];
-            } else {
-                $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-                if ($contentType === 'application/json' || strpos($contentType, 'application/json') !== false) {
-                    $json = json_decode(file_get_contents('php://input'), true);
-                    if (isset($json['csrf_token'])) {
-                        $token = (string) $json['csrf_token'];
-                    }
-                }
+            $token = $request->post('csrf_token');
+            if (!$token) {
+                // Check headers
+                $token = $request->header('X-CSRF-TOKEN');
+            }
+            if (!$token) {
+                // Check JSON body
+                $token = $request->json('csrf_token');
             }
         }
 
-        if (empty($token) || empty($_SESSION[self::$sessionKey])) {
+        if (!$token) {
             return false;
         }
 
-        $tokenData = $_SESSION[self::$sessionKey];
+        $tokenData = $request->session(self::$sessionKey);
+        if (empty($tokenData) || empty($tokenData['token'])) {
+            return false;
+        }
+
         if ((time() - ($tokenData['time'] ?? 0)) >= self::$tokenLifetime) {
-            unset($_SESSION[self::$sessionKey]);
+            $request->unsetSession(self::$sessionKey);
             return false;
         }
 
@@ -102,10 +97,8 @@ final class CsrfProtection
 
     public static function refreshToken(): string
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        unset($_SESSION[self::$sessionKey]);
+        $request = new Request();
+        $request->unsetSession(self::$sessionKey);
         return self::generateToken();
     }
 }

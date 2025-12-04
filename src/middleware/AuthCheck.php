@@ -1,6 +1,8 @@
 <?php
 namespace App\Middleware;
 
+use App\Core\Request;
+
 /**
  * AuthCheck - Kiểm tra quyền truy cập
  */
@@ -11,11 +13,8 @@ class AuthCheck
      */
     public static function requireLogin()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        if (!isset($_SESSION['user_id'])) {
+        $request = new Request();
+        if (!$request->session('user_id')) {
             http_response_code(401);
             header('Location: ' . BASE_URL . '/auth/login');
             exit('Unauthorized: Please login first');
@@ -27,19 +26,17 @@ class AuthCheck
      */
     public static function requireAdmin()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $request = new Request();
 
         // Kiểm tra đã đăng nhập
-        if (!isset($_SESSION['user_id'])) {
+        if (!$request->session('user_id')) {
             http_response_code(401);
             header('Location: ' . BASE_URL . '/auth/login');
             exit('Unauthorized: Please login first');
         }
 
         // Kiểm tra quyền admin
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if ($request->session('role') !== 'admin') {
             http_response_code(403);
             header('Location: ' . BASE_URL . '/dashboard');
             exit('Access Denied: Admin only');

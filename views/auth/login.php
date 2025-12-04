@@ -7,7 +7,7 @@
 	<title>SmartSpending - Quản Lý Chi Tiêu</title>
 	<link rel="icon" type="image/x-icon" href="<?= BASE_URL; ?>/favicon.ico">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-	<link rel="stylesheet" href="<?= BASE_URL; ?>/login_signup/login_signup.css">
+	<link rel="stylesheet" href="<?= BASE_URL; ?>/assets/css/login.css">
 </head>
 
 <body>

@@ -2,7 +2,7 @@
 namespace App\Controllers\User;
 
 use App\Core\Controllers;
-use App\Core\ApiResponse;
+use App\Core\Response;
 use App\Services\Validator;
 use App\Middleware\CsrfProtection;
 use App\Middleware\AuthCheck;
@@ -64,15 +64,15 @@ class Transactions extends Controllers
 
     public function add()
     {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($this->request->method() === 'POST') {
             $userId = $this->getCurrentUserId();
             
             // Sanitize and prepare data from the form
-            $type = $_POST['type'] ?? 'expense';
-            $amount = $_POST['amount'] ?? 0;
-            $categoryId = $_POST['category_id'] ?? 0;
-            $date = $_POST['date'] ?? date('Y-m-d');
-            $description = trim($_POST['description'] ?? '');
+            $type = $this->request->post('type', 'expense');
+            $amount = $this->request->post('amount', 0);
+            $categoryId = $this->request->post('category_id', 0);
+            $date = $this->request->post('date', date('Y-m-d'));
+            $description = trim($this->request->post('description', ''));
 
             // Basic validation
             if ($amount > 0 && !empty($categoryId)) {
@@ -93,8 +93,9 @@ class Transactions extends Controllers
 
     public function api_add()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
         try {
@@ -104,13 +105,13 @@ class Transactions extends Controllers
             $userId = $this->getCurrentUserId();
             
             // Get JSON data
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $this->request->json();
             
             // Validate data
             $validator = new Validator();
             if (!$validator->validateTransaction($data)) {
                 // Return detailed validation errors
-                ApiResponse::validationError($validator->getErrors(), $validator->getFirstError());
+                Response::errorResponse($validator->getFirstError(), $validator->getErrors());
                 return;
             }
 
@@ -128,19 +129,20 @@ class Transactions extends Controllers
             );
 
             if ($result) {
-                ApiResponse::success('Thêm giao dịch thành công');
+                Response::successResponse('Thêm giao dịch thành công');
             } else {
-                ApiResponse::error('Không thể thêm giao dịch');
+                Response::errorResponse('Không thể thêm giao dịch');
             }
         } catch (\Exception $e) {
-            ApiResponse::serverError('Lỗi: ' . $e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
     public function api_update($id)
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
         try {
@@ -148,12 +150,13 @@ class Transactions extends Controllers
             CsrfProtection::verify();
             
             $userId = $this->getCurrentUserId();
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = $this->request->json();
             
             // Validate data
             $validator = new Validator();
             if (!$validator->validateTransaction($data)) {
-                ApiResponse::validationError($validator->getErrors(), $validator->getFirstError());
+                Response::errorResponse($validator->getFirstError(), $validator->getErrors());
+                return;
             }
 
             // Get validated data
@@ -170,19 +173,20 @@ class Transactions extends Controllers
             );
 
             if ($result) {
-                ApiResponse::success('Cập nhật thành công', ['id' => $id]);
+                Response::successResponse('Cập nhật thành công', ['id' => $id]);
             } else {
-                ApiResponse::error('Không thể cập nhật');
+                Response::errorResponse('Không thể cập nhật');
             }
         } catch (\Exception $e) {
-            ApiResponse::serverError('Lỗi: ' . $e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
     public function api_delete($id)
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
         try {
@@ -193,12 +197,12 @@ class Transactions extends Controllers
             $result = $this->transactionModel->deleteTransaction($id, $userId);
 
             if ($result) {
-                ApiResponse::success('Xóa giao dịch thành công', ['id' => $id]);
+                Response::successResponse('Xóa giao dịch thành công', ['id' => $id]);
             } else {
-                ApiResponse::error('Không thể xóa giao dịch');
+                Response::errorResponse('Không thể xóa giao dịch');
             }
         } catch (\Exception $e) {
-            ApiResponse::serverError('Lỗi: ' . $e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
@@ -208,18 +212,19 @@ class Transactions extends Controllers
      */
     public function api_get_transactions()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            ApiResponse::methodNotAllowed();
+        if ($this->request->method() !== 'GET') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
         }
 
         try {
             $userId = $this->getCurrentUserId();
             
             // Get filters from query params
-            $range = $_GET['range'] ?? date('Y-m');
-            $categoryId = $_GET['category'] ?? 'all';
-            $page = (int)($_GET['page'] ?? 1);
-            $perPage = (int)($_GET['per_page'] ?? 7);
+            $range = $this->request->get('range', date('Y-m'));
+            $categoryId = $this->request->get('category', 'all');
+            $page = (int)$this->request->get('page', 1);
+            $perPage = (int)$this->request->get('per_page', 7);
             
             $filters = [
                 'range' => $range,
@@ -250,7 +255,7 @@ class Transactions extends Controllers
                 ];
             }, $transactions);
             
-            ApiResponse::success('Lấy danh sách giao dịch thành công', [
+            Response::successResponse('Lấy danh sách giao dịch thành công', [
                 'transactions' => $formattedTransactions,
                 'pagination' => [
                     'current_page' => $page,
@@ -266,7 +271,7 @@ class Transactions extends Controllers
                 ]
             ]);
         } catch (\Exception $e) {
-            ApiResponse::serverError('Lỗi: ' . $e->getMessage());
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 }

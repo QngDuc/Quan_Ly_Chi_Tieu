@@ -14,7 +14,10 @@ class Dashboard extends Controllers
         parent::__construct();
         // Kiểm tra quyền user (ngăn admin truy cập)
         AuthCheck::requireUser();
-        $this->dashboardService = new DashboardService();
+        
+        // Dependency Injection (Manual)
+        $transactionModel = $this->model('Transaction');
+        $this->dashboardService = new DashboardService($transactionModel);
     }
 
     public function index($range = null)
