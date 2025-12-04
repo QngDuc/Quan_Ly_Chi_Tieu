@@ -52,9 +52,9 @@ define('SESSION_USER_EMAIL', 'user_email');
 define('SESSION_USER_NAME', 'user_name');
 define('SESSION_CSRF_TOKEN', 'csrf_token');
 
-// Google OAuth
-define('GOOGLE_CLIENT_ID', '261016454696-ac7ptce2mum952eht27klfc8kik96n4r.apps.googleusercontent.com');
-define('GOOGLE_CLIENT_SECRET', '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'); 
+// Google OAuth (loaded from .env file)
+define('GOOGLE_CLIENT_ID', $_ENV['GOOGLE_CLIENT_ID'] ?? '');
+define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
 
 // File upload limits
 define('MAX_UPLOAD_SIZE', 5242880); // 5MB
