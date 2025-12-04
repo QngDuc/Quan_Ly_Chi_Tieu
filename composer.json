@@ -21,6 +21,7 @@
             "App\\Controllers\\": "app/controllers/",
             "App\\Controllers\\User\\": "app/controllers/User/",
             "App\\Controllers\\Admin\\": "app/controllers/Admin/",
+            "App\\Controllers\\Auth\\": "app/controllers/Auth/",
             "App\\Models\\": "app/models/",
             "App\\Services\\": "app/services/",
             "App\\Middleware\\": "app/middleware/"

@@ -52,6 +52,10 @@ define('SESSION_USER_EMAIL', 'user_email');
 define('SESSION_USER_NAME', 'user_name');
 define('SESSION_CSRF_TOKEN', 'csrf_token');
 
+// Google OAuth
+define('GOOGLE_CLIENT_ID', '261016454696-ac7ptce2mum952eht27klfc8kik96n4r.apps.googleusercontent.com');
+define('GOOGLE_CLIENT_SECRET', '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'); 
+
 // File upload limits
 define('MAX_UPLOAD_SIZE', 5242880); // 5MB
 
@@ -85,7 +89,6 @@ define('CHART_COLORS_BALANCE', '#2196f3');
 define('DEFAULT_CATEGORIES_INCOME', [
     'Lương',
     'Thưởng',
-    'Freelance',
     'Đầu tư',
     'Khác'
 ]);

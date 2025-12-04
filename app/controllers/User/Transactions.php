@@ -109,7 +109,9 @@ class Transactions extends Controllers
             // Validate data
             $validator = new Validator();
             if (!$validator->validateTransaction($data)) {
+                // Return detailed validation errors
                 ApiResponse::validationError($validator->getErrors(), $validator->getFirstError());
+                return;
             }
 
             // Get validated data
@@ -239,12 +241,12 @@ class Transactions extends Controllers
                     'id' => $t['id'],
                     'amount' => $t['amount'],
                     'description' => $t['description'],
-                    'transaction_date' => $t['transaction_date'],
+                    'transaction_date' => $t['date'],
                     'category_id' => $t['category_id'],
                     'category_name' => $t['category_name'],
                     'type' => $t['amount'] >= 0 ? 'income' : 'expense',
                     'formatted_amount' => number_format(abs($t['amount']), 0, ',', '.') . ' ₫',
-                    'formatted_date' => date('d M Y', strtotime($t['transaction_date']))
+                    'formatted_date' => date('d M Y', strtotime($t['date']))
                 ];
             }, $transactions);
             

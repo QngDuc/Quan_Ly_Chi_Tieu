@@ -17,7 +17,7 @@ class AuthCheck
 
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
-            header('Location: ' . BASE_URL . '/');
+            header('Location: ' . BASE_URL . '/auth/login');
             exit('Unauthorized: Please login first');
         }
     }
@@ -34,7 +34,7 @@ class AuthCheck
         // Kiểm tra đã đăng nhập
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
-            header('Location: ' . BASE_URL . '/');
+            header('Location: ' . BASE_URL . '/auth/login');
             exit('Unauthorized: Please login first');
         }
 
@@ -58,7 +58,7 @@ class AuthCheck
         // Kiểm tra đã đăng nhập
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
-            header('Location: ' . BASE_URL . '/');
+            header('Location: ' . BASE_URL . '/auth/login');
             exit('Unauthorized: Please login first');
         }
 

@@ -273,8 +273,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Xóa Giao Dịch?',
                     'Bạn có chắc chắn muốn xóa giao dịch này? Hành động này không thể hoàn tác.',
                     () => {
+                        // Get CSRF token
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                        
                         fetch(`${BASE_URL}/transactions/api_delete/${transactionId}`, {
-                            method: 'POST'
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-Token': csrfToken
+                            }
                         })
                         .then(response => response.json())
                         .then(data => {
@@ -301,8 +307,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const editForm = document.getElementById('editTransactionForm');
                 if (!editForm) return;
 
+                const amountInput = document.getElementById('edit_amount');
+                const rawAmount = this.dataset.amount;
+                
                 document.getElementById('edit_transaction_id').value = this.dataset.id;
-                document.getElementById('edit_amount').value = this.dataset.amount;
+                
+                // Set amount and trigger input event to format it
+                amountInput.value = rawAmount;
+                amountInput.dataset.numericValue = rawAmount;
+                amountInput.dispatchEvent(new Event('input'));
+                
                 document.getElementById('edit_type').value = this.dataset.type;
                 document.getElementById('edit_date').value = this.dataset.date;
                 document.getElementById('edit_description').value = this.dataset.description;
@@ -323,15 +337,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
             
+            // Get numeric value from masked input
+            const amountInput = this.querySelector('input[name="amount"]');
+            const numericAmount = amountInput.dataset.numericValue ? parseInt(amountInput.dataset.numericValue, 10) : parseFloat(data.amount.replace(/[^\d]/g, ''));
+            
+            // Validate amount
+            if (!numericAmount || numericAmount <= 0) {
+                SmartSpending.showToast('Vui lòng nhập số tiền hợp lệ', 'error');
+                return;
+            }
+            
+            // Set the numeric amount
+            data.amount = numericAmount;
+            
+            console.log('Sending data:', data); // Debug
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
             fetch(BASE_URL + '/transactions/api_add', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status); // Debug
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data); // Debug
                 if (data.success) {
                     // Close modal first
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
@@ -366,10 +403,27 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
             
+            // Get numeric value from masked input
+            const amountInput = this.querySelector('input[name="amount"]');
+            const numericAmount = amountInput.dataset.numericValue ? parseInt(amountInput.dataset.numericValue, 10) : parseFloat(data.amount.replace(/[^\d]/g, ''));
+            
+            // Validate amount
+            if (!numericAmount || numericAmount <= 0) {
+                SmartSpending.showToast('Vui lòng nhập số tiền hợp lệ', 'error');
+                return;
+            }
+            
+            // Set the numeric amount
+            data.amount = numericAmount;
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
             fetch(`${BASE_URL}/transactions/api_update/${transactionId}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
                 },
                 body: JSON.stringify(data)
             })
@@ -398,6 +452,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial attachment of event listeners for server-rendered transactions
     attachTransactionListeners();
+
+    // Set today's date when opening add transaction modal
+    const addModal = document.getElementById('addTransactionModal');
+    if (addModal) {
+        addModal.addEventListener('show.bs.modal', function() {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.querySelector('#addTransactionForm input[name="transaction_date"]');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = today;
+            }
+        });
+    }
 
     // Handle browser back/forward buttons
     window.addEventListener('popstate', function(event) {

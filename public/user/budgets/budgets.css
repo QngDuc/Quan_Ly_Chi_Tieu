@@ -9,6 +9,253 @@
     --danger: #e74c3c;
 }
 
+/* Income Card Styles */
+.income-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.income-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+}
+
+.income-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.income-icon {
+    font-size: 48px;
+    color: #1abc9c;
+}
+
+.income-label {
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.income-amount {
+    font-size: 36px;
+    font-weight: 700;
+    color: #2c3e50;
+    letter-spacing: -0.5px;
+}
+
+/* Jar Card Styles for Dynamic Jars */
+.jar-description {
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.jar-categories {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 0 0;
+}
+
+.jar-categories li {
+    font-size: 13px;
+    color: #495057;
+    padding: 4px 0;
+    padding-left: 18px;
+    position: relative;
+}
+
+.jar-categories li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #1abc9c;
+    font-weight: bold;
+}
+
+.jar-body {
+    padding: 15px 0;
+    border-top: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+    margin: 15px 0;
+}
+
+.jar-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* Jars Grid */
+.jars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+.jar-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.jar-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+    border-color: #f0f0f0;
+}
+
+.jar-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.jar-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.jar-info {
+    flex: 1;
+}
+
+.jar-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
+.jar-percentage {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.jar-amounts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.jar-amount-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.jar-amount-item:last-child {
+    border-bottom: none;
+}
+
+.jar-amount-item .label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.jar-amount-item .value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.jar-progress {
+    margin-top: 16px;
+}
+
+.jar-progress .progress {
+    height: 10px;
+    border-radius: 10px;
+    background: var(--border);
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.jar-progress .progress-bar {
+    border-radius: 10px;
+    transition: width 0.4s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Category Guide */
+.guide-item {
+    background: #fafbfc;
+    border-radius: 12px;
+    padding: 20px;
+    height: 100%;
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+
+.guide-item:hover {
+    background: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.guide-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.guide-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.guide-list {
+    list-style: none;
+    padding-left: 22px;
+    margin: 0;
+}
+
+.guide-list li {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 6px 0;
+    position: relative;
+}
+
+.guide-list li:before {
+    content: "•";
+    position: absolute;
+    left: -15px;
+    color: var(--primary);
+    font-weight: bold;
+}
+
 .budget-header {
     display: flex;
     justify-content: space-between;

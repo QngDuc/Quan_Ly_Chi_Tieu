@@ -1,7 +1,11 @@
-<?php $this->partial('header'); ?>
+<?php 
+use App\Middleware\CsrfProtection;
+$this->partial('header'); 
+?>
 
 <!-- Transactions Specific Styles -->
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>/user/transactions/transactions.css">
+<?php echo CsrfProtection::getTokenMeta(); ?>
 
 <div class="container-fluid" style="background: white; min-height: 100vh; padding: 40px 20px;">
     <div class="container" style="max-width: 1200px;">
@@ -69,7 +73,7 @@
                         <?php foreach ($transactions as $t): ?>
                             <tr>
                                 <td class="transactions-date">
-                                    <?php echo date('d M Y', strtotime($t['transaction_date'])); ?>
+                                    <?php echo date('d M Y', strtotime($t['date'])); ?>
                                 </td>
                                 <td>
                                     <div class="transactions-category-wrapper">
@@ -101,7 +105,7 @@
                                             data-category="<?php echo $t['category_id']; ?>"
                                             data-amount="<?php echo abs($t['amount']); ?>"
                                             data-description="<?php echo htmlspecialchars($t['description'], ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-date="<?php echo $t['transaction_date']; ?>"
+                                            data-date="<?php echo $t['date']; ?>"
                                             data-bs-toggle="modal" 
                                             data-bs-target="#editTransactionModal" 
                                             title="Sửa">
@@ -198,7 +202,8 @@
                     
                     <!-- 5. Amount -->
                     <div class="mb-3">
-                        <input type="number" name="amount" class="form-control transactions-modal-input amount-input" required min="0" step="1000" placeholder="0" id="add_amount">
+                        <input type="number" name="amount" class="form-control transactions-modal-input amount-input" required min="1" step="1000" placeholder="Nhập số tiền" id="add_amount">
+                        <div class="form-text">Ví dụ: 50000 (50 nghìn đồng)</div>
                     </div>
                 </div>
                 <div class="modal-footer transactions-modal-footer">

@@ -21,10 +21,16 @@ class Validator
         $this->data = [];
 
         // Validate amount
-        if (!isset($data['amount']) || !is_numeric($data['amount']) || $data['amount'] <= 0) {
-            $this->errors['amount'] = 'Số tiền phải là số dương hợp lệ';
+        if (!isset($data['amount'])) {
+            $this->errors['amount'] = 'Số tiền là bắt buộc';
         } else {
-            $this->data['amount'] = floatval($data['amount']);
+            // Convert to float and validate
+            $amount = is_numeric($data['amount']) ? floatval($data['amount']) : 0;
+            if ($amount <= 0) {
+                $this->errors['amount'] = 'Số tiền phải là số dương hợp lệ';
+            } else {
+                $this->data['amount'] = $amount;
+            }
         }
 
         // Validate category_id
@@ -34,24 +40,23 @@ class Validator
             $this->data['category_id'] = intval($data['category_id']);
         }
 
-        // Validate date
-        if (isset($data['date']) && !empty($data['date'])) {
-            if (!FinancialUtils::validateDate($data['date'])) {
+        // Validate date - support both 'date' and 'transaction_date' field names
+        $dateValue = null;
+        if (isset($data['transaction_date']) && !empty($data['transaction_date'])) {
+            $dateValue = $data['transaction_date'];
+        } elseif (isset($data['date']) && !empty($data['date'])) {
+            $dateValue = $data['date'];
+        }
+
+        if ($dateValue) {
+            $dateObj = \DateTime::createFromFormat('Y-m-d', $dateValue);
+            if (!$dateObj || $dateObj->format('Y-m-d') !== $dateValue) {
                 $this->errors['date'] = 'Ngày không hợp lệ (định dạng: YYYY-MM-DD)';
             } else {
-                $this->data['date'] = $data['date'];
+                $this->data['date'] = $dateValue;
             }
         } else {
             $this->data['date'] = date('Y-m-d');
-        }
-
-        // Validate transaction_date (alternative field name)
-        if (isset($data['transaction_date']) && !empty($data['transaction_date'])) {
-            if (!FinancialUtils::validateDate($data['transaction_date'])) {
-                $this->errors['transaction_date'] = 'Ngày không hợp lệ (định dạng: YYYY-MM-DD)';
-            } else {
-                $this->data['date'] = $data['transaction_date'];
-            }
         }
 
         // Validate and sanitize description
@@ -60,7 +65,7 @@ class Validator
             if (strlen($description) > 255) {
                 $this->errors['description'] = 'Mô tả không được vượt quá 255 ký tự';
             } else {
-                $this->data['description'] = FinancialUtils::sanitizeString($description);
+                $this->data['description'] = htmlspecialchars($description, ENT_QUOTES, 'UTF-8');
             }
         } else {
             $this->data['description'] = '';
@@ -92,13 +97,13 @@ class Validator
         } elseif (strlen($data['name']) > 100) {
             $this->errors['name'] = 'Tên không được vượt quá 100 ký tự';
         } else {
-            $this->data['name'] = FinancialUtils::sanitizeString($data['name']);
+            $this->data['name'] = htmlspecialchars(trim($data['name']), ENT_QUOTES, 'UTF-8');
         }
 
         // Validate email
         if (!isset($data['email']) || empty(trim($data['email']))) {
             $this->errors['email'] = 'Email không được để trống';
-        } elseif (!FinancialUtils::validateEmail($data['email'])) {
+        } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $this->errors['email'] = 'Email không hợp lệ';
         } else {
             $this->data['email'] = filter_var($data['email'], FILTER_SANITIZE_EMAIL);

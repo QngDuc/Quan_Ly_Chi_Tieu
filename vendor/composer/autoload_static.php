@@ -14,6 +14,7 @@ class ComposerStaticInit4fadebf17455cbe745e42b659de1791f
             'App\\Middleware\\' => 15,
             'App\\Core\\' => 9,
             'App\\Controllers\\User\\' => 21,
+            'App\\Controllers\\Auth\\' => 21,
             'App\\Controllers\\Admin\\' => 22,
             'App\\Controllers\\' => 16,
             'App\\' => 4,
@@ -41,6 +42,10 @@ class ComposerStaticInit4fadebf17455cbe745e42b659de1791f
         array (
             0 => __DIR__ . '/../..' . '/app/controllers/User',
         ),
+        'App\\Controllers\\Auth\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/app/controllers/Auth',
+        ),
         'App\\Controllers\\Admin\\' => 
         array (
             0 => __DIR__ . '/../..' . '/app/controllers/Admin',
@@ -56,7 +61,9 @@ class ComposerStaticInit4fadebf17455cbe745e42b659de1791f
     );
 
     public static $classMap = array (
+        'App\\Controllers\\Admin\\Dashboard' => __DIR__ . '/../..' . '/app/controllers/Admin/Dashboard.php',
         'App\\Controllers\\Admin\\Users' => __DIR__ . '/../..' . '/app/controllers/Admin/Users.php',
+        'App\\Controllers\\Auth\\Login' => __DIR__ . '/../..' . '/app/controllers/Auth/Login.php',
         'App\\Controllers\\Login_signup' => __DIR__ . '/../..' . '/app/controllers/Login_signup.php',
         'App\\Controllers\\User\\Budgets' => __DIR__ . '/../..' . '/app/controllers/User/Budgets.php',
         'App\\Controllers\\User\\Dashboard' => __DIR__ . '/../..' . '/app/controllers/User/Dashboard.php',
@@ -71,6 +78,8 @@ class ComposerStaticInit4fadebf17455cbe745e42b659de1791f
         'App\\Core\\Request' => __DIR__ . '/../..' . '/app/core/Request.php',
         'App\\Core\\Response' => __DIR__ . '/../..' . '/app/core/Response.php',
         'App\\Core\\Views' => __DIR__ . '/../..' . '/app/core/Views.php',
+        'App\\Middleware\\AuthCheck' => __DIR__ . '/../..' . '/app/middleware/AuthCheck.php',
+        'App\\Middleware\\CsrfProtection' => __DIR__ . '/../..' . '/app/middleware/CsrfProtection.php',
         'App\\Models\\Category' => __DIR__ . '/../..' . '/app/models/Category.php',
         'App\\Models\\Goal' => __DIR__ . '/../..' . '/app/models/Goal.php',
         'App\\Models\\Transaction' => __DIR__ . '/../..' . '/app/models/Transaction.php',

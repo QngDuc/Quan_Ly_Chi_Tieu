@@ -47,7 +47,7 @@
                     <a href="<?php echo BASE_URL; ?>/dashboard" class="btn btn-light me-2">
                         <i class="fas fa-user"></i> User View
                     </a>
-                    <a href="<?php echo BASE_URL; ?>/login_signup/logout" class="btn btn-outline-light">
+                    <a href="<?php echo BASE_URL; ?>/auth/login/logout" class="btn btn-outline-light">
                         <i class="fas fa-sign-out-alt"></i> Đăng xuất
                     </a>
                 </div>
@@ -131,10 +131,10 @@
                         <a href="<?php echo BASE_URL; ?>/admin/users" class="d-block p-3 text-decoration-none text-dark quick-action border-bottom">
                             <i class="fas fa-users-cog"></i> Quản lý Users
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/dashboard" class="d-block p-3 text-decoration-none text-dark quick-action border-bottom">
+                        <a href="<?php echo $userBase; ?>/dashboard" class="d-block p-3 text-decoration-none text-dark quick-action border-bottom">
                             <i class="fas fa-chart-line"></i> Xem Dashboard User
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/transactions" class="d-block p-3 text-decoration-none text-dark quick-action">
+                        <a href="<?php echo $userBase; ?>/transactions" class="d-block p-3 text-decoration-none text-dark quick-action">
                             <i class="fas fa-list"></i> Xem Giao dịch
                         </a>
                     </div>

@@ -33,7 +33,7 @@ class Goals extends Controllers {
     public function index() {
         // Kiểm tra đăng nhập
         if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_URL . '/login_signup');
+            header('Location: ' . BASE_URL . '/auth/login');
             exit();
         }
         

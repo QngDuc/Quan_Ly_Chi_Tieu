@@ -6,7 +6,9 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'App\\Controllers\\Admin\\Dashboard' => $baseDir . '/app/controllers/Admin/Dashboard.php',
     'App\\Controllers\\Admin\\Users' => $baseDir . '/app/controllers/Admin/Users.php',
+    'App\\Controllers\\Auth\\Login' => $baseDir . '/app/controllers/Auth/Login.php',
     'App\\Controllers\\Login_signup' => $baseDir . '/app/controllers/Login_signup.php',
     'App\\Controllers\\User\\Budgets' => $baseDir . '/app/controllers/User/Budgets.php',
     'App\\Controllers\\User\\Dashboard' => $baseDir . '/app/controllers/User/Dashboard.php',
@@ -21,6 +23,8 @@ return array(
     'App\\Core\\Request' => $baseDir . '/app/core/Request.php',
     'App\\Core\\Response' => $baseDir . '/app/core/Response.php',
     'App\\Core\\Views' => $baseDir . '/app/core/Views.php',
+    'App\\Middleware\\AuthCheck' => $baseDir . '/app/middleware/AuthCheck.php',
+    'App\\Middleware\\CsrfProtection' => $baseDir . '/app/middleware/CsrfProtection.php',
     'App\\Models\\Category' => $baseDir . '/app/models/Category.php',
     'App\\Models\\Goal' => $baseDir . '/app/models/Goal.php',
     'App\\Models\\Transaction' => $baseDir . '/app/models/Transaction.php',

@@ -227,133 +227,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const exportBtn = document.getElementById('exportReport');
     if (exportBtn) {
         exportBtn.addEventListener('click', function() {
-            exportReport();
+            exportExcel();
         });
     }
 
     /**
      * Export report to PDF/Image
      */
-    async function exportReport() {
-        SmartSpending.showToast('Đang chuẩn bị xuất báo cáo...', 'info');
-
+    function exportExcel() {
         try {
-            // Get chart images
-            const lineCanvas = document.getElementById('lineChart');
-            const pieCanvas = document.getElementById('pieChart');
-
-            if (!lineCanvas || !pieCanvas) {
-                SmartSpending.showToast('Không tìm thấy biểu đồ', 'error');
-                return;
+            const params = new URLSearchParams({
+                period: currentFilters.period,
+                type: currentFilters.type
+            });
+            const url = `${BASE_URL}/reports/export_excel?${params.toString()}`;
+            window.location.href = url; // Trigger download
+        } catch (e) {
+            console.error('Export error:', e);
+            if (typeof SmartSpending !== 'undefined' && SmartSpending.showToast) {
+                SmartSpending.showToast('Lỗi khi xuất Excel', 'error');
             }
-
-            // Create a new window with printable content
-            const printWindow = window.open('', '_blank');
-            const lineImage = lineCanvas.toDataURL('image/png');
-            const pieImage = pieCanvas.toDataURL('image/png');
-
-            const periodText = {
-                'this_month': 'Tháng này',
-                'last_3_months': '3 tháng gần đây',
-                'last_6_months': '6 tháng gần đây',
-                'this_year': 'Năm nay'
-            }[currentFilters.period] || '3 tháng gần đây';
-
-            const typeText = {
-                'all': 'Tất cả',
-                'income': 'Thu nhập',
-                'expense': 'Chi tiêu'
-            }[currentFilters.type] || 'Tất cả';
-
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Báo cáo - SmartSpending</title>
-                    <style>
-                        body {
-                            font-family: 'Segoe UI', Arial, sans-serif;
-                            padding: 20px;
-                            max-width: 1200px;
-                            margin: 0 auto;
-                        }
-                        h1 {
-                            color: #1abc9c;
-                            text-align: center;
-                            margin-bottom: 10px;
-                        }
-                        .subtitle {
-                            text-align: center;
-                            color: #666;
-                            margin-bottom: 30px;
-                        }
-                        .chart-container {
-                            margin: 30px 0;
-                            page-break-inside: avoid;
-                        }
-                        .chart-title {
-                            font-size: 18px;
-                            font-weight: bold;
-                            margin-bottom: 15px;
-                            color: #333;
-                        }
-                        img {
-                            max-width: 100%;
-                            height: auto;
-                            border: 1px solid #ddd;
-                            border-radius: 8px;
-                        }
-                        .footer {
-                            margin-top: 40px;
-                            text-align: center;
-                            color: #999;
-                            font-size: 12px;
-                        }
-                        @media print {
-                            body { padding: 10px; }
-                            .no-print { display: none; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h1>📊 Báo cáo Chi tiêu - SmartSpending</h1>
-                    <div class="subtitle">
-                        Kỳ báo cáo: ${periodText} | Loại: ${typeText}<br>
-                        Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}
-                    </div>
-
-                    <div class="chart-container">
-                        <div class="chart-title">📈 Thu nhập và Chi tiêu theo thời gian</div>
-                        <img src="${lineImage}" alt="Line Chart">
-                    </div>
-
-                    <div class="chart-container">
-                        <div class="chart-title">🥧 Phân bổ theo danh mục</div>
-                        <img src="${pieImage}" alt="Pie Chart">
-                    </div>
-
-                    <div class="footer">
-                        © 2025 SmartSpending - Quản lý chi tiêu thông minh
-                    </div>
-
-                    <div class="no-print" style="margin-top: 30px; text-align: center;">
-                        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #1abc9c; color: white; border: none; border-radius: 5px;">
-                            🖨️ In báo cáo
-                        </button>
-                        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #e74c3c; color: white; border: none; border-radius: 5px; margin-left: 10px;">
-                            ✖️ Đóng
-                        </button>
-                    </div>
-                </body>
-                </html>
-            `);
-
-            printWindow.document.close();
-            SmartSpending.showToast('Báo cáo đã sẵn sàng!', 'success');
-
-        } catch (error) {
-            console.error('Export error:', error);
-            SmartSpending.showToast('Lỗi khi xuất báo cáo', 'error');
         }
     }
 

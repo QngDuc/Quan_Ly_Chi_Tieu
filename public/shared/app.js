@@ -15,38 +15,63 @@ const SmartSpending = {
         return new Intl.DateTimeFormat('vi-VN').format(new Date(date));
     },
 
-    // Show toast notification (FinTrack style - simple centered)
+    // Show toast notification (Modern style with close button)
     showToast: (message, type = 'success') => {
-        const container = document.getElementById('toastContainer');
-        if (!container) return;
+        // Create container if not exists
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
 
         const icons = {
             success: 'fa-check-circle',
-            error: 'fa-exclamation-circle',
+            error: 'fa-times-circle',
             warning: 'fa-exclamation-triangle',
             info: 'fa-info-circle'
         };
 
+        const titles = {
+            success: 'Thành công',
+            error: 'Lỗi',
+            warning: 'Cảnh báo',
+            info: 'Thông tin'
+        };
+
         const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
+        toast.className = `toast toast-${type}`;
         toast.innerHTML = `
-            <div class="toast-icon">
+            <div class="toast-icon-wrapper">
                 <i class="fas ${icons[type]}"></i>
             </div>
             <div class="toast-content">
-                <p class="toast-message">${message}</p>
+                <div class="toast-title">${titles[type]}</div>
+                <div class="toast-message">${message}</div>
             </div>
+            <button class="toast-close" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
         `;
 
         container.appendChild(toast);
 
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            toast.classList.add('hiding');
-            setTimeout(() => {
-                toast.remove();
-            }, 300);
-        }, 3000);
+        // Add show animation
+        setTimeout(() => toast.classList.add('toast-show'), 10);
+
+        // Close button handler
+        const closeBtn = toast.querySelector('.toast-close');
+        const removeToast = () => {
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+            setTimeout(() => toast.remove(), 300);
+        };
+        
+        closeBtn.addEventListener('click', removeToast);
+
+        // Auto remove after 4 seconds
+        setTimeout(removeToast, 4000);
     },
 
     // Custom confirm dialog (FinTrack style)

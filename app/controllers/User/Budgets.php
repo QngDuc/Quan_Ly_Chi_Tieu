@@ -81,12 +81,13 @@ class Budgets extends Controllers
             SELECT * FROM jar_allocations 
             WHERE user_id = ? AND month = ?
         ");
-        $stmt->execute([$userId, $period . '-01']);
+        // jar_allocations.month is VARCHAR(7) formatted as YYYY-MM
+        $stmt->execute([$userId, $period]);
         $allocation = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$allocation) {
             $this->createDefaultAllocation($userId, $period);
-            $stmt->execute([$userId, $period . '-01']);
+            $stmt->execute([$userId, $period]);
             $allocation = $stmt->fetch(\PDO::FETCH_ASSOC);
         }
 
@@ -98,14 +99,16 @@ class Budgets extends Controllers
      */
     private function createDefaultAllocation($userId, $period)
     {
+        // Use UPSERT to avoid duplicate key error when called concurrently or when record exists
         $stmt = $this->db->prepare("
             INSERT INTO jar_allocations (
                 user_id, month, total_income,
                 nec_percentage, ffa_percentage, edu_percentage,
                 ltss_percentage, play_percentage, give_percentage
             ) VALUES (?, ?, 0, 55, 10, 10, 10, 10, 5)
+            ON DUPLICATE KEY UPDATE month = VALUES(month)
         ");
-        $stmt->execute([$userId, $period . '-01']);
+        $stmt->execute([$userId, $period]);
     }
     
     /**
@@ -177,7 +180,7 @@ class Budgets extends Controllers
             $percentages['ltss'], ($totalIncome * $percentages['ltss']) / 100,
             $percentages['play'], ($totalIncome * $percentages['play']) / 100,
             $percentages['give'], ($totalIncome * $percentages['give']) / 100,
-            $userId, $period . '-01'
+            $userId, $period
         ]);
     }
     
@@ -208,7 +211,7 @@ class Budgets extends Controllers
             ($income * $allocation['ltss_percentage']) / 100,
             ($income * $allocation['play_percentage']) / 100,
             ($income * $allocation['give_percentage']) / 100,
-            $userId, $period . '-01'
+            $userId, $period
         ]);
     }
     
@@ -229,30 +232,6 @@ class Budgets extends Controllers
         return $result['total'] ?? 0;
     }
 
-    /**
-     * API: Get 6 Jars summary for a specific period
-     */
-    public function api_get_jars($period = null)
-    {
-        try {
-            $userId = $this->getCurrentUserId();
-            
-            if (!$period) {
-                $period = date('Y-m');
-            }
-
-            $jarSummary = $this->getJarSummary($userId, $period);
-            $totalIncome = $this->getTotalIncome($userId, $period);
-
-            ApiResponse::success('Success', [
-                'jar_summary' => $jarSummary,
-                'total_income' => $totalIncome
-            ]);
-        } catch (\Exception $e) {
-            ApiResponse::serverError($e->getMessage());
-        }
-    }
-    
     /**
      * API: Update jar allocation percentages
      */
@@ -307,6 +286,182 @@ class Budgets extends Controllers
             $jarSummary = $this->getJarSummary($userId, $period);
             
             ApiResponse::success('Cập nhật thu nhập thành công', ['jar_summary' => $jarSummary]);
+        } catch (\Exception $e) {
+            ApiResponse::serverError($e->getMessage());
+        }
+    }
+
+    /**
+     * API: Get all jar templates
+     * GET /budgets/api_get_jars
+     */
+    public function api_get_jars()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            ApiResponse::methodNotAllowed();
+        }
+
+        try {
+            $userId = $this->getCurrentUserId();
+            $jarModel = new \App\Models\JarTemplate();
+            $jars = $jarModel->getByUser($userId);
+            
+            // Get categories for each jar
+            foreach ($jars as &$jar) {
+                $jar['categories'] = $jarModel->getCategories($jar['id']);
+            }
+            
+            $totalPercentage = $jarModel->getTotalPercentage($userId);
+            
+            ApiResponse::success('Lấy danh sách hũ thành công', [
+                'jars' => $jars,
+                'total_percentage' => $totalPercentage
+            ]);
+        } catch (\Exception $e) {
+            ApiResponse::serverError($e->getMessage());
+        }
+    }
+
+    /**
+     * API: Create a new jar template
+     * POST /budgets/api_create_jar
+     */
+    public function api_create_jar()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            ApiResponse::methodNotAllowed();
+        }
+
+        CsrfProtection::validateToken();
+
+        try {
+            $userId = $this->getCurrentUserId();
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            // Validate input
+            if (empty($input['name']) || !isset($input['percentage'])) {
+                ApiResponse::error('Vui lòng nhập tên hũ và phần trăm', 400);
+                return;
+            }
+
+            $jarModel = new \App\Models\JarTemplate();
+            
+            // Check total percentage
+            $currentTotal = $jarModel->getTotalPercentage($userId);
+            $newTotal = $currentTotal + floatval($input['percentage']);
+            
+            if ($newTotal > 100) {
+                ApiResponse::error('Tổng phần trăm không được vượt quá 100%', 400);
+                return;
+            }
+
+            $data = [
+                'user_id' => $userId,
+                'name' => $input['name'],
+                'percentage' => floatval($input['percentage']),
+                'color' => $input['color'] ?? '#6c757d',
+                'icon' => $input['icon'] ?? null,
+                'description' => $input['description'] ?? null,
+                'order_index' => $input['order_index'] ?? 0
+            ];
+
+            $jarId = $jarModel->create($data);
+            
+            if ($jarId) {
+                // Add categories if provided
+                if (!empty($input['categories']) && is_array($input['categories'])) {
+                    foreach ($input['categories'] as $index => $categoryName) {
+                        $jarModel->addCategory($jarId, $categoryName, $index);
+                    }
+                }
+                
+                ApiResponse::success('Tạo hũ thành công', ['jar_id' => $jarId]);
+            } else {
+                ApiResponse::serverError('Không thể tạo hũ');
+            }
+        } catch (\Exception $e) {
+            ApiResponse::serverError($e->getMessage());
+        }
+    }
+
+    /**
+     * API: Update a jar template
+     * POST /budgets/api_update_jar/{id}
+     */
+    public function api_update_jar($id)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            ApiResponse::methodNotAllowed();
+        }
+
+        CsrfProtection::validateToken();
+
+        try {
+            $userId = $this->getCurrentUserId();
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $jarModel = new \App\Models\JarTemplate();
+            
+            // Check if jar exists
+            $jar = $jarModel->getById($id, $userId);
+            if (!$jar) {
+                ApiResponse::notFound('Không tìm thấy hũ');
+                return;
+            }
+
+            // Validate percentage
+            $currentTotal = $jarModel->getTotalPercentage($userId);
+            $newTotal = $currentTotal - floatval($jar['percentage']) + floatval($input['percentage']);
+            
+            if ($newTotal > 100) {
+                ApiResponse::error('Tổng phần trăm không được vượt quá 100%', 400);
+                return;
+            }
+
+            $data = [
+                'name' => $input['name'],
+                'percentage' => floatval($input['percentage']),
+                'color' => $input['color'] ?? $jar['color'],
+                'icon' => $input['icon'] ?? $jar['icon'],
+                'description' => $input['description'] ?? $jar['description'],
+                'order_index' => $input['order_index'] ?? $jar['order_index']
+            ];
+
+            $result = $jarModel->update($id, $userId, $data);
+            
+            if ($result) {
+                ApiResponse::success('Cập nhật hũ thành công');
+            } else {
+                ApiResponse::serverError('Không thể cập nhật hũ');
+            }
+        } catch (\Exception $e) {
+            ApiResponse::serverError($e->getMessage());
+        }
+    }
+
+    /**
+     * API: Delete a jar template
+     * POST /budgets/api_delete_jar/{id}
+     */
+    public function api_delete_jar($id)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            ApiResponse::methodNotAllowed();
+        }
+
+        CsrfProtection::validateToken();
+
+        try {
+            $userId = $this->getCurrentUserId();
+            $jarModel = new \App\Models\JarTemplate();
+            
+            $result = $jarModel->delete($id, $userId);
+            
+            if ($result) {
+                ApiResponse::success('Xóa hũ thành công');
+            } else {
+                ApiResponse::serverError('Không thể xóa hũ');
+            }
         } catch (\Exception $e) {
             ApiResponse::serverError($e->getMessage());
         }

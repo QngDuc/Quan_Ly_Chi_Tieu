@@ -3,9 +3,9 @@ namespace App\Core;
 
 class App
 {
-        protected $controller = 'Login_signup'; // Default controller for now
-        protected $method = 'index'; // Default method
-        protected $params = [];
+    protected $controller = 'Login'; // Default controller (Auth\Login)
+    protected $method = 'index'; // Default method
+    protected $params = [];
     
         public function __construct()
         {
@@ -17,9 +17,11 @@ class App
         $namespace = 'App\\Controllers';
         $folderPath = '/controllers';
 
-        // If no controller is specified, use the default Login_signup controller
+        // If no controller is specified, use the default Auth\\Login controller
         if (empty($url[0])) {
-            $this->controller = 'Login_signup';
+            $namespace = 'App\\Controllers\\Auth';
+            $folderPath = '/controllers/Auth';
+            $this->controller = 'Login';
         } else {
             // Check if this is an admin route
             if ($url[0] === 'admin') {
@@ -31,6 +33,20 @@ class App
                 // Set admin controller (default to Users)
                 if (empty($url[0])) {
                     $this->controller = 'Users';
+                } else {
+                    $this->controller = ucfirst($url[0]);
+                    unset($url[0]);
+                }
+            } elseif ($url[0] === 'auth') {
+                // Auth routes
+                $namespace = 'App\\Controllers\\Auth';
+                $folderPath = '/controllers/Auth';
+                unset($url[0]);
+                $url = array_values($url);
+
+                // Default auth controller
+                if (empty($url[0])) {
+                    $this->controller = 'Login';
                 } else {
                     $this->controller = ucfirst($url[0]);
                     unset($url[0]);
@@ -47,10 +63,10 @@ class App
         // Require the controller file
         $controllerFile = APP_PATH . $folderPath . '/' . $this->controller . '.php';
         if (!file_exists($controllerFile)) {
-            // Fallback to Login_signup if controller not found
-            $namespace = 'App\\Controllers';
-            $this->controller = 'Login_signup';
-            $controllerFile = APP_PATH . '/controllers/Login_signup.php';
+            // Fallback to Auth\\Login if controller not found
+            $namespace = 'App\\Controllers\\Auth';
+            $this->controller = 'Login';
+            $controllerFile = APP_PATH . '/controllers/Auth/Login.php';
         }
         
         require_once $controllerFile;

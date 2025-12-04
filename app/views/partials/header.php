@@ -16,16 +16,25 @@
 
     <!-- Page-specific CSS -->
     <?php
-        $url = trim($_GET['url'] ?? '', '/');
-        $page = explode('/', $url)[0];
-        
-        // Treat home and dashboard as the same page (dashboard)
-        if ($page === 'home' || $page === '') {
-            $page = 'dashboard';
+        $rawUrl = trim($_GET['url'] ?? '', '/');
+        if ($rawUrl === '') {
+            $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+            $basePath = BASE_URL;
+            if ($basePath !== '' && strpos($requestUri, $basePath) === 0) {
+                $path = substr($requestUri, strlen($basePath));
+            } else {
+                $path = $requestUri;
+            }
+            $path = strtok($path, '?');
+            $rawUrl = trim($path, '/');
         }
-        
+
+        $segments = $rawUrl !== '' ? explode('/', $rawUrl) : [];
+        $page = $segments[0] ?? '';
+        if ($page === 'home' || $page === '') { $page = 'dashboard'; }
+
         // Load page-specific CSS if it exists (from module-specific folders)
-        if ($page && in_array($page, ['dashboard', 'transactions', 'budgets', 'goals', 'reports', 'profile'])) {
+        if (in_array($page, ['dashboard', 'transactions', 'budgets', 'goals', 'reports', 'profile'])) {
             $cssFile = BASE_URL . '/user/' . $page . '/' . $page . '.css';
             echo '<link href="' . $cssFile . '" rel="stylesheet">' . "\n";
         } elseif ($page === 'admin') {
@@ -41,16 +50,19 @@
         </div>
         
         <nav class="nav-links">
-            <a href="<?php echo BASE_URL; ?>/dashboard" class="<?php echo (trim($_GET['url'] ?? '', '/') === '' || strpos($_GET['url'] ?? '', 'dashboard') === 0) ? 'active' : ''; ?>">Tổng quan</a>
-            <a href="<?php echo BASE_URL; ?>/transactions" class="<?php echo strpos($_GET['url'] ?? '', 'transactions') === 0 ? 'active' : ''; ?>">Giao dịch</a>
-            <a href="<?php echo BASE_URL; ?>/budgets" class="<?php echo strpos($_GET['url'] ?? '', 'budgets') === 0 ? 'active' : ''; ?>">Ngân sách</a>
-            <a href="<?php echo BASE_URL; ?>/goals" class="<?php echo strpos($_GET['url'] ?? '', 'goals') === 0 ? 'active' : ''; ?>">Mục tiêu</a>
-            <a href="<?php echo BASE_URL; ?>/reports" class="<?php echo strpos($_GET['url'] ?? '', 'reports') === 0 ? 'active' : ''; ?>">Báo cáo</a>
+            <?php
+                $isActive = function($name) use ($page) { return $page === $name ? 'active' : ''; };
+            ?>
+            <a href="<?php echo BASE_URL; ?>/dashboard" class="<?php echo $isActive('dashboard'); ?>">Tổng quan</a>
+            <a href="<?php echo BASE_URL; ?>/transactions" class="<?php echo $isActive('transactions'); ?>">Giao dịch</a>
+            <a href="<?php echo BASE_URL; ?>/budgets" class="<?php echo $isActive('budgets'); ?>">Ngân sách</a>
+            <a href="<?php echo BASE_URL; ?>/goals" class="<?php echo $isActive('goals'); ?>">Mục tiêu</a>
+            <a href="<?php echo BASE_URL; ?>/reports" class="<?php echo $isActive('reports'); ?>">Báo cáo</a>
         </nav>
 
         <div class="user-actions">
-            <i class="fas fa-wallet icon-action" title="Ví của tôi"></i> 
-            
+            <i class="fas fa-wallet icon-action" title="Ví của tôi"></i>
+
             <div class="dropdown">
                 <a class="icon-action dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="far fa-user-circle" title="Tài khoản"></i>
@@ -58,7 +70,7 @@
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                     <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/profile"><i class="fas fa-user me-2"></i>Hồ sơ</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/login_signup/logout"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
+                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/auth/login/logout"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
                 </ul>
             </div>
         </div>

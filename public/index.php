@@ -1,6 +1,17 @@
 <?php
 
-session_start();
+// Harden session cookie parameters BEFORE starting the session
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
 
 // Define APP_PATH, CONFIG_PATH, PUBLIC_PATH
 define('APP_PATH', dirname(__DIR__) . '/app');
@@ -32,6 +43,9 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
 
 // Composer Autoloader
 require_once dirname(__DIR__) . '/vendor/autoload.php'; 
+
+// Load constants
+require_once CONFIG_PATH . '/constants.php';
 
 // Removed manual require_once statements as Composer autoloader handles them
 

@@ -11,6 +11,7 @@ return array(
     'App\\Middleware\\' => array($baseDir . '/app/middleware'),
     'App\\Core\\' => array($baseDir . '/app/core'),
     'App\\Controllers\\User\\' => array($baseDir . '/app/controllers/User'),
+    'App\\Controllers\\Auth\\' => array($baseDir . '/app/controllers/Auth'),
     'App\\Controllers\\Admin\\' => array($baseDir . '/app/controllers/Admin'),
     'App\\Controllers\\' => array($baseDir . '/app/controllers'),
     'App\\' => array($baseDir . '/app'),
