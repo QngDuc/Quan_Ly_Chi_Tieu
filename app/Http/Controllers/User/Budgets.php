@@ -10,6 +10,8 @@ use App\Middleware\AuthCheck;
 class Budgets extends Controllers
 {
     protected $db;
+    protected $budgetModel;
+    protected $categoryModel;
 
     public function __construct()
     {
@@ -17,25 +19,26 @@ class Budgets extends Controllers
         // Kiểm tra quyền user (ngăn admin truy cập)
         AuthCheck::requireUser();
         $this->db = (new \App\Core\ConnectDB())->getConnection();
+        $this->budgetModel = new \App\Models\Budget();
+        $this->categoryModel = new \App\Models\Category();
     }
 
     /**
-     * Display budgets index page with 50/30/20 Rule
+     * Display budgets index page (Money Lover style)
      */
-    public function index($period = null)
+    public function index()
     {
         $data = [
-            'title' => 'Quản lý Ngân sách - Quy tắc 50/30/20',
-            'current_period' => $period
+            'title' => 'Quản lý Ngân sách'
         ];
         $this->view('user/budgets', $data);
     }
 
     /**
-     * API: Get all jar templates
-     * GET /budgets/api_get_jars
+     * API: Get all budgets with spending data
+     * GET /budgets/api_get_all
      */
-    public function api_get_jars()
+    public function api_get_all()
     {
         if ($this->request->method() !== 'GET') {
             Response::errorResponse('Method Not Allowed', null, 405);
@@ -44,19 +47,33 @@ class Budgets extends Controllers
 
         try {
             $userId = $this->getCurrentUserId();
-            $jarModel = new \App\Models\JarTemplate();
-            $jars = $jarModel->getByUser($userId);
+            $period = $_GET['period'] ?? 'monthly'; // monthly, weekly, yearly
             
-            // Get categories for each jar
-            foreach ($jars as &$jar) {
-                $jar['categories'] = $jarModel->getCategories($jar['id']);
+            // Get budgets with spending data
+            $budgets = $this->budgetModel->getBudgetsWithSpending($userId, $period);
+            
+            // Calculate summary
+            $totalBudget = 0;
+            $totalSpent = 0;
+            $activeCount = 0;
+            
+            foreach ($budgets as $budget) {
+                $totalBudget += $budget['amount'];
+                $totalSpent += $budget['spent'];
+                if ($budget['is_active']) {
+                    $activeCount++;
+                }
             }
             
-            $totalPercentage = $jarModel->getTotalPercentage($userId);
-            
-            Response::successResponse('Lấy danh sách hũ thành công', [
-                'jars' => $jars,
-                'total_percentage' => $totalPercentage
+            Response::successResponse('Lấy danh sách ngân sách thành công', [
+                'budgets' => $budgets,
+                'summary' => [
+                    'total_budget' => $totalBudget,
+                    'total_spent' => $totalSpent,
+                    'remaining' => $totalBudget - $totalSpent,
+                    'active_count' => $activeCount,
+                    'period' => $period
+                ]
             ]);
         } catch (\Exception $e) {
             Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
@@ -64,10 +81,33 @@ class Budgets extends Controllers
     }
 
     /**
-     * API: Create a new jar template
-     * POST /budgets/api_create_jar
+     * API: Get expense categories for budget creation
+     * GET /budgets/api_get_categories
      */
-    public function api_create_jar()
+    public function api_get_categories()
+    {
+        if ($this->request->method() !== 'GET') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
+        }
+
+        try {
+            $userId = $this->getCurrentUserId();
+            $categories = $this->categoryModel->getExpenseCategories($userId);
+            
+            Response::successResponse('Lấy danh sách danh mục thành công', [
+                'categories' => $categories
+            ]);
+        } catch (\Exception $e) {
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * API: Create a new budget
+     * POST /budgets/api_create
+     */
+    public function api_create()
     {
         if ($this->request->method() !== 'POST') {
             Response::errorResponse('Method Not Allowed', null, 405);
@@ -80,46 +120,61 @@ class Budgets extends Controllers
             $userId = $this->getCurrentUserId();
             $input = $this->request->json();
             
-            // Validate input
-            if (empty($input['name']) || !isset($input['percentage'])) {
-                Response::errorResponse('Vui lòng nhập tên hũ và phần trăm', null, 400);
+            // Validate input (manual)
+            $errors = [];
+
+            if (!isset($input['category_id']) || !is_numeric($input['category_id'])) {
+                $errors['category_id'][] = 'category_id phải là số và không được để trống';
+            }
+            if (!isset($input['amount']) || !is_numeric($input['amount']) || floatval($input['amount']) < 1) {
+                $errors['amount'][] = 'amount phải là số >= 1';
+            }
+            if (!isset($input['period']) || !in_array($input['period'], ['weekly', 'monthly', 'yearly'], true)) {
+                $errors['period'][] = 'period phải là một trong: weekly, monthly, yearly';
+            }
+
+            if (!empty($errors)) {
+                Response::errorResponse('Dữ liệu không hợp lệ', $errors, 400);
                 return;
             }
 
-            $jarModel = new \App\Models\JarTemplate();
+            // Calculate start_date and end_date based on period
+            $period = $input['period'];
+            $now = new \DateTime();
             
-            // Check total percentage
-            $currentTotal = $jarModel->getTotalPercentage($userId);
-            $newTotal = $currentTotal + floatval($input['percentage']);
-            
-            if ($newTotal > 100) {
-                Response::errorResponse('Tổng phần trăm không được vượt quá 100%', null, 400);
-                return;
+            switch ($period) {
+                case 'weekly':
+                    $startDate = $now->modify('monday this week')->format('Y-m-d');
+                    $endDate = (clone $now)->modify('sunday this week')->format('Y-m-d');
+                    break;
+                case 'yearly':
+                    $startDate = $now->format('Y-01-01');
+                    $endDate = $now->format('Y-12-31');
+                    break;
+                case 'monthly':
+                default:
+                    $startDate = $now->format('Y-m-01');
+                    $endDate = $now->format('Y-m-t');
+                    break;
             }
 
             $data = [
                 'user_id' => $userId,
-                'name' => $input['name'],
-                'percentage' => floatval($input['percentage']),
-                'color' => $input['color'] ?? '#6c757d',
-                'icon' => $input['icon'] ?? null,
-                'description' => $input['description'] ?? null,
-                'order_index' => $input['order_index'] ?? 0
+                'category_id' => $input['category_id'],
+                'amount' => floatval($input['amount']),
+                'period' => $period,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'alert_threshold' => $input['alert_threshold'] ?? 80,
+                'is_active' => 1
             ];
 
-            $jarId = $jarModel->create($data);
+            $budgetId = $this->budgetModel->create($data);
             
-            if ($jarId) {
-                // Add categories if provided
-                if (!empty($input['categories']) && is_array($input['categories'])) {
-                    foreach ($input['categories'] as $index => $categoryName) {
-                        $jarModel->addCategory($jarId, $categoryName, $index);
-                    }
-                }
-                
-                Response::successResponse('Tạo hũ thành công', ['jar_id' => $jarId]);
+            if ($budgetId) {
+                Response::successResponse('Tạo ngân sách thành công', ['budget_id' => $budgetId]);
             } else {
-                Response::errorResponse('Không thể tạo hũ');
+                Response::errorResponse('Không thể tạo ngân sách');
             }
         } catch (\Exception $e) {
             Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
@@ -127,10 +182,10 @@ class Budgets extends Controllers
     }
 
     /**
-     * API: Update a jar template
-     * POST /budgets/api_update_jar/{id}
+     * API: Update a budget
+     * POST /budgets/api_update/{id}
      */
-    public function api_update_jar($id)
+    public function api_update($id)
     {
         if ($this->request->method() !== 'POST') {
             Response::errorResponse('Method Not Allowed', null, 405);
@@ -143,39 +198,36 @@ class Budgets extends Controllers
             $userId = $this->getCurrentUserId();
             $input = $this->request->json();
             
-            $jarModel = new \App\Models\JarTemplate();
-            
-            // Check if jar exists
-            $jar = $jarModel->getById($id, $userId);
-            if (!$jar) {
-                Response::errorResponse('Không tìm thấy hũ', null, 404);
+            // Validate input (manual)
+            $errors = [];
+            if (!isset($input['amount']) || !is_numeric($input['amount']) || floatval($input['amount']) < 1) {
+                $errors['amount'][] = 'amount phải là số >= 1';
+            }
+
+            if (!empty($errors)) {
+                Response::errorResponse('Dữ liệu không hợp lệ', $errors, 400);
                 return;
             }
 
-            // Validate percentage
-            $currentTotal = $jarModel->getTotalPercentage($userId);
-            $newTotal = $currentTotal - floatval($jar['percentage']) + floatval($input['percentage']);
-            
-            if ($newTotal > 100) {
-                Response::errorResponse('Tổng phần trăm không được vượt quá 100%', null, 400);
+            // Check if budget exists
+            $budget = $this->budgetModel->getById($id);
+            if (!$budget || $budget['user_id'] != $userId) {
+                Response::errorResponse('Không tìm thấy ngân sách', null, 404);
                 return;
             }
 
             $data = [
-                'name' => $input['name'],
-                'percentage' => floatval($input['percentage']),
-                'color' => $input['color'] ?? $jar['color'],
-                'icon' => $input['icon'] ?? $jar['icon'],
-                'description' => $input['description'] ?? $jar['description'],
-                'order_index' => $input['order_index'] ?? $jar['order_index']
+                'amount' => floatval($input['amount']),
+                'alert_threshold' => $input['alert_threshold'] ?? $budget['alert_threshold'],
+                'is_active' => isset($input['is_active']) ? intval($input['is_active']) : $budget['is_active']
             ];
 
-            $result = $jarModel->update($id, $userId, $data);
+            $result = $this->budgetModel->update($id, $data);
             
             if ($result) {
-                Response::successResponse('Cập nhật hũ thành công');
+                Response::successResponse('Cập nhật ngân sách thành công');
             } else {
-                Response::errorResponse('Không thể cập nhật hũ');
+                Response::errorResponse('Không thể cập nhật ngân sách');
             }
         } catch (\Exception $e) {
             Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
@@ -183,10 +235,10 @@ class Budgets extends Controllers
     }
 
     /**
-     * API: Delete a jar template
-     * POST /budgets/api_delete_jar/{id}
+     * API: Delete a budget
+     * POST /budgets/api_delete/{id}
      */
-    public function api_delete_jar($id)
+    public function api_delete($id)
     {
         if ($this->request->method() !== 'POST') {
             Response::errorResponse('Method Not Allowed', null, 405);
@@ -197,93 +249,62 @@ class Budgets extends Controllers
 
         try {
             $userId = $this->getCurrentUserId();
-            $jarModel = new \App\Models\JarTemplate();
             
-            $result = $jarModel->delete($id, $userId);
-            
-            if ($result) {
-                Response::successResponse('Xóa hũ thành công');
-            } else {
-                Response::errorResponse('Không thể xóa hũ');
-            }
-        } catch (\Exception $e) {
-            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
-        }
-    }
-
-    /**
-     * API: Create default 50/30/20 jars
-     * POST /budgets/api_create_default_503020
-     */
-    public function api_create_default_503020()
-    {
-        if ($this->request->method() !== 'POST') {
-            Response::errorResponse('Method Not Allowed', null, 405);
-            return;
-        }
-
-        CsrfProtection::verify();
-
-        try {
-            $userId = $this->getCurrentUserId();
-            $jarModel = new \App\Models\JarTemplate();
-            
-            // Check if user already has jars
-            $existingJars = $jarModel->getByUser($userId);
-            if (!empty($existingJars)) {
-                Response::errorResponse('Bạn đã có các hũ ngân sách. Vui lòng xóa hết trước khi tạo mặc định.', null, 400);
+            // Check if budget exists
+            $budget = $this->budgetModel->getById($id);
+            if (!$budget || $budget['user_id'] != $userId) {
+                Response::errorResponse('Không tìm thấy ngân sách', null, 404);
                 return;
             }
-
-            $defaults = [
-                [
-                    'name' => 'Nhu cầu thiết yếu',
-                    'percentage' => 50,
-                    'color' => '#dc3545', // Danger/Red
-                    'description' => 'Chi phí sinh hoạt, ăn uống, đi lại...',
-                    'categories' => ['Ăn uống', 'Đi lại', 'Hóa đơn', 'Thuê nhà']
-                ],
-                [
-                    'name' => 'Mong muốn',
-                    'percentage' => 30,
-                    'color' => '#ffc107', // Warning/Yellow
-                    'description' => 'Mua sắm, giải trí, du lịch...',
-                    'categories' => ['Mua sắm', 'Giải trí', 'Du lịch']
-                ],
-                [
-                    'name' => 'Tiết kiệm & Đầu tư',
-                    'percentage' => 20,
-                    'color' => '#28a745', // Success/Green
-                    'description' => 'Tiết kiệm dài hạn, đầu tư...',
-                    'categories' => ['Tiết kiệm', 'Đầu tư']
-                ]
-            ];
-
-            foreach ($defaults as $index => $jar) {
-                $data = [
-                    'user_id' => $userId,
-                    'name' => $jar['name'],
-                    'percentage' => $jar['percentage'],
-                    'color' => $jar['color'],
-                    'description' => $jar['description'],
-                    'order_index' => $index
-                ];
-                
-                $jarId = $jarModel->create($data);
-                
-                if ($jarId && !empty($jar['categories'])) {
-                    foreach ($jar['categories'] as $catIndex => $catName) {
-                        $jarModel->addCategory($jarId, $catName, $catIndex);
-                    }
-                }
+            
+            $result = $this->budgetModel->delete($id);
+            
+            if ($result) {
+                Response::successResponse('Xóa ngân sách thành công');
+            } else {
+                Response::errorResponse('Không thể xóa ngân sách');
             }
-            
-            Response::successResponse('Đã tạo bộ hũ 50/30/20 thành công');
-            
         } catch (\Exception $e) {
             Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
 
+    /**
+     * API: Toggle budget active status
+     * POST /budgets/api_toggle/{id}
+     */
+    public function api_toggle($id)
+    {
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
+        }
 
+        CsrfProtection::verify();
+
+        try {
+            $userId = $this->getCurrentUserId();
+            
+            // Check if budget exists
+            $budget = $this->budgetModel->getById($id);
+            if (!$budget || $budget['user_id'] != $userId) {
+                Response::errorResponse('Không tìm thấy ngân sách', null, 404);
+                return;
+            }
+            
+            $result = $this->budgetModel->update($id, [
+                'is_active' => $budget['is_active'] ? 0 : 1
+            ]);
+            
+            if ($result) {
+                Response::successResponse('Cập nhật trạng thái thành công', [
+                    'is_active' => !$budget['is_active']
+                ]);
+            } else {
+                Response::errorResponse('Không thể cập nhật trạng thái');
+            }
+        } catch (\Exception $e) {
+            Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
+        }
+    }
 }

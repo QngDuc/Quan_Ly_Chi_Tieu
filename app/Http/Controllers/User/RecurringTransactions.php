@@ -20,14 +20,8 @@ class RecurringTransactions extends Controllers
         parent::__construct();
         AuthCheck::requireUser();
         
-        try {
-            $this->recurringModel = $this->model('RecurringTransaction');
-            $this->categoryModel = $this->model('Category');
-        } catch (\Exception $e) {
-            error_log("RecurringTransactions - Model load error: " . $e->getMessage());
-            Response::errorResponse('Failed to initialize: ' . $e->getMessage(), null, 500);
-            exit;
-        }
+        $this->recurringModel = $this->model('RecurringTransaction');
+        $this->categoryModel = $this->model('Category');
     }
 
     /**

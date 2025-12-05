@@ -4,106 +4,133 @@ $this->partial('header');
 ?>
 
 <!-- Budgets Specific Styles -->
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>/user/budgets/budgets.css">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>/user/budgets/budgets_new.css">
 <?php echo CsrfProtection::getTokenMeta(); ?>
 
 <section>
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Quản lý Ngân sách - Quy tắc 50/30/20</h3>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3><i class="fas fa-wallet me-2"></i>Quản lý Ngân sách</h3>
         <div class="d-flex gap-2">
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createJarModal">
-                <i class="bi bi-plus-circle"></i> Tạo nhóm mới
+            <select class="form-select form-select-sm" id="periodSelect" style="width: 150px;">
+                <option value="monthly">Tháng này</option>
+                <option value="weekly">Tuần này</option>
+                <option value="yearly">Năm này</option>
+            </select>
+            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#createBudgetModal">
+                <i class="fas fa-plus-circle"></i> Thêm ngân sách
             </button>
         </div>
     </div>
 
-    <!-- Income Summary Card -->
-    <div class="income-card mb-4">
-        <div class="income-header">
-            <i class="bi bi-cash-coin income-icon"></i>
-            <div>
-                <div class="income-label">Tổng tỷ lệ đã phân bổ</div>
-                <div class="income-amount" id="totalPercentage">
-                    0%
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4" id="summaryCards">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div>
+                        <p class="text-muted mb-2 small fw-semibold">Tổng ngân sách</p>
+                        <h3 class="mb-0 fw-bold text-primary" id="totalBudget">0 ₫</h3>
+                    </div>
+                    <div class="bg-primary p-3 rounded-3">
+                        <i class="fas fa-wallet fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div>
+                        <p class="text-muted mb-2 small fw-semibold">Đã chi tiêu</p>
+                        <h3 class="mb-0 fw-bold text-danger" id="totalSpent">0 ₫</h3>
+                    </div>
+                    <div class="bg-danger p-3 rounded-3">
+                        <i class="fas fa-arrow-down fa-2x text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div>
+                        <p class="text-muted mb-2 small fw-semibold">Còn lại</p>
+                        <h3 class="mb-0 fw-bold text-success" id="totalRemaining">0 ₫</h3>
+                    </div>
+                    <div class="bg-success p-3 rounded-3">
+                        <i class="fas fa-piggy-bank fa-2x text-success"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Jars Grid -->
-    <div class="jars-grid mb-4" id="jarsGrid">
-        <!-- Jars will be loaded dynamically -->
+    <!-- Budgets List -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div id="budgetsList">
+                <!-- Budgets will be loaded dynamically -->
+            </div>
+        </div>
     </div>
 
     <!-- Empty State -->
     <div class="text-center py-5" id="emptyState" style="display: none;">
-        <i class="bi bi-jar text-muted" style="font-size: 4rem;"></i>
-        <h5 class="mt-3 text-muted">Chưa có nhóm mục đích nào</h5>
-        <p class="text-muted">Tạo nhóm đầu tiên để bắt đầu quản lý ngân sách</p>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createJarModal">
-            <i class="bi bi-plus-circle"></i> Tạo nhóm tùy chỉnh
-        </button>
-        <button class="btn btn-outline-primary ms-2" onclick="createDefault503020()">
-            <i class="bi bi-magic"></i> Tạo ngân sách 50/30/20
+        <i class="fas fa-wallet text-muted" style="font-size: 4rem;"></i>
+        <h5 class="mt-3 text-muted">Chưa có ngân sách nào</h5>
+        <p class="text-muted">Tạo ngân sách đầu tiên để theo dõi chi tiêu của bạn</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createBudgetModal">
+            <i class="fas fa-plus-circle"></i> Tạo ngân sách mới
         </button>
     </div>
 </section>
 
-<!-- Create/Edit Jar Modal -->
-<div class="modal fade" id="createJarModal" tabindex="-1">
+<!-- Create/Edit Budget Modal -->
+<div class="modal fade" id="createBudgetModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="jarModalTitle">Tạo nhóm mới</h5>
+                <h5 class="modal-title" id="budgetModalTitle">Tạo ngân sách mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="jarForm">
-                    <input type="hidden" id="jar_id" name="jar_id">
+                <form id="budgetForm">
+                    <input type="hidden" id="budget_id" name="budget_id">
                     
                     <div class="mb-3">
-                        <label class="form-label">Tên nhóm *</label>
-                        <input type="text" class="form-control" id="jar_name" name="name" required 
-                               placeholder="VD: Thiết yếu, Mong muốn, Tiết kiệm...">
+                        <label class="form-label">Danh mục *</label>
+                        <select class="form-select" id="budget_category" name="category_id" required>
+                            <option value="">-- Chọn danh mục --</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Phần trăm phân bổ (%) *</label>
-                        <input type="number" class="form-control" id="jar_percentage" name="percentage" 
-                               required min="0" max="100" step="1" placeholder="10">
-                        <small class="text-muted">Tổng tất cả các nhóm không được vượt quá 100%</small>
+                        <label class="form-label">Số tiền ngân sách *</label>
+                        <input type="number" class="form-control" id="budget_amount" name="amount" 
+                               required min="1" step="1000" placeholder="1000000">
+                        <small class="text-muted">Số tiền tối đa cho phép chi tiêu trong kỳ</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Màu sắc</label>
-                        <input type="color" class="form-control form-control-color" id="jar_color" 
-                               name="color" value="#6c757d">
+                        <label class="form-label">Chu kỳ *</label>
+                        <select class="form-select" id="budget_period" name="period" required>
+                            <option value="monthly">Hàng tháng</option>
+                            <option value="weekly">Hàng tuần</option>
+                            <option value="yearly">Hàng năm</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Icon (Font Awesome)</label>
-                        <input type="text" class="form-control" id="jar_icon" name="icon" 
-                               placeholder="fa-home, fa-piggy-bank, fa-graduation-cap...">
-                        <small class="text-muted">Nhập tên class icon từ Font Awesome hoặc Bootstrap Icons</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Mô tả</label>
-                        <textarea class="form-control" id="jar_description" name="description" 
-                                  rows="3" placeholder="Mô tả mục đích của nhóm này..."></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Danh mục con (mỗi dòng một mục)</label>
-                        <textarea class="form-control" id="jar_categories" name="categories" 
-                                  rows="4" placeholder="Ăn uống&#10;Tiền nhà&#10;Điện nước"></textarea>
-                        <small class="text-muted">Nhập các danh mục chi tiết cho nhóm này</small>
+                        <label class="form-label">Ngưỡng cảnh báo (%)</label>
+                        <input type="number" class="form-control" id="budget_threshold" name="alert_threshold" 
+                               value="80" min="1" max="100" step="1">
+                        <small class="text-muted">Cảnh báo khi chi tiêu vượt quá % này (mặc định 80%)</small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary" id="saveJarBtn" onclick="saveJar()">Lưu</button>
+                <button type="button" class="btn btn-primary" id="saveBudgetBtn" onclick="saveBudget()">Lưu</button>
             </div>
         </div>
     </div>
@@ -111,196 +138,277 @@ $this->partial('header');
 
 <script>
 window.BASE_URL = "<?php echo BASE_URL; ?>";
+let categories = [];
+let currentPeriod = 'monthly';
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadJars();
+    loadCategories();
+    loadBudgets();
+    
+    // Period change handler
+    document.getElementById('periodSelect').addEventListener('change', function(e) {
+        currentPeriod = e.target.value;
+        loadBudgets();
+    });
+    
+    // Modal open handler
+    document.getElementById('createBudgetModal').addEventListener('show.bs.modal', function() {
+        resetBudgetForm();
+    });
 });
 
-// Load all jars
-function loadJars() {
-    fetch(`${BASE_URL}/budgets/api_get_jars`)
+// Load categories for dropdown
+function loadCategories() {
+    fetch(`${BASE_URL}/budgets/api_get_categories`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                renderJars(data.data.jars);
-                document.getElementById('totalPercentage').textContent = data.data.total_percentage + '%';
+                categories = data.data.categories;
+                renderCategoryOptions();
+            }
+        })
+        .catch(error => console.error('Error loading categories:', error));
+}
+
+// Render category dropdown
+function renderCategoryOptions() {
+    const select = document.getElementById('budget_category');
+    const currentValue = select.value;
+    
+    select.innerHTML = '<option value="">-- Chọn danh mục --</option>';
+    
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name;
+        option.style.color = cat.color || '#000';
+        select.appendChild(option);
+    });
+    
+    if (currentValue) {
+        select.value = currentValue;
+    }
+}
+
+// Load all budgets
+function loadBudgets() {
+    fetch(`${BASE_URL}/budgets/api_get_all?period=${currentPeriod}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderBudgets(data.data.budgets);
+                renderSummary(data.data.summary);
             }
         })
         .catch(error => console.error('Error:', error));
 }
 
-// Render jars
-function renderJars(jars) {
-    const grid = document.getElementById('jarsGrid');
+// Format currency
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+}
+
+// Render summary cards
+function renderSummary(summary) {
+    document.getElementById('totalBudget').textContent = formatCurrency(summary.total_budget || 0);
+    document.getElementById('totalSpent').textContent = formatCurrency(summary.total_spent || 0);
+    document.getElementById('totalRemaining').textContent = formatCurrency(summary.remaining || 0);
+}
+
+// Render budgets list
+function renderBudgets(budgets) {
+    const list = document.getElementById('budgetsList');
     const emptyState = document.getElementById('emptyState');
     
-    if (!jars || jars.length === 0) {
-        grid.innerHTML = '';
+    if (!budgets || budgets.length === 0) {
+        list.innerHTML = '';
         emptyState.style.display = 'block';
         return;
     }
     
     emptyState.style.display = 'none';
     
-    grid.innerHTML = jars.map(jar => `
-        <div class="jar-card">
-            <div class="jar-header">
-                <div class="jar-icon" style="background: ${jar.color}">
-                    <i class="${jar.icon || 'bi bi-jar'}"></i>
-                </div>
-                <div class="jar-info">
-                    <div class="jar-name">${jar.name}</div>
-                    <div class="jar-percentage">${jar.percentage}%</div>
-                </div>
-            </div>
-            <div class="jar-body">
-                ${jar.description ? `<p class="jar-description">${jar.description}</p>` : ''}
-                ${jar.categories && jar.categories.length > 0 ? `
-                    <ul class="jar-categories">
-                        ${jar.categories.map(cat => `<li>${cat.category_name}</li>`).join('')}
-                    </ul>
-                ` : ''}
-            </div>
-            <div class="jar-actions">
-                <button class="btn btn-sm btn-outline-primary" onclick="editJar(${jar.id})">
-                    <i class="bi bi-pencil"></i> Sửa
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteJar(${jar.id})">
-                    <i class="bi bi-trash"></i> Xóa
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Create default 50/30/20 jars
-function createDefault503020() {
-    if (!confirm('Bạn có chắc muốn tạo bộ nhóm 50/30/20 mặc định?')) return;
-
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    fetch(`${BASE_URL}/budgets/api_create_default_503020`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-Token': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            SmartSpending.showToast('Đã tạo bộ nhóm 50/30/20 thành công!', 'success');
-            loadJars();
+    list.innerHTML = budgets.map(budget => {
+        const percentage = parseFloat(budget.percentage_used) || 0;
+        const isOverBudget = percentage > 100;
+        const isNearLimit = percentage >= budget.alert_threshold && percentage <= 100;
+        
+        let progressColor = 'bg-success';
+        let statusClass = '';
+        let statusText = '';
+        
+        if (isOverBudget) {
+            progressColor = 'bg-danger';
+            statusClass = 'text-danger';
+            statusText = '<i class="fas fa-exclamation-triangle"></i> Vượt ngân sách';
+        } else if (isNearLimit) {
+            progressColor = 'bg-warning';
+            statusClass = 'text-warning';
+            statusText = '<i class="fas fa-exclamation-circle"></i> Gần đạt ngưỡng';
         } else {
-            SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
+            statusClass = 'text-success';
+            statusText = '<i class="fas fa-check-circle"></i> Trong giới hạn';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        SmartSpending.showToast('Có lỗi xảy ra', 'error');
-    });
+        
+        return `
+            <div class="budget-item mb-3 pb-3 border-bottom">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="category-icon" style="background-color: ${budget.category_color}20; color: ${budget.category_color}; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <i class="${budget.category_icon || 'fas fa-circle'} fa-lg"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">${budget.category_name}</h6>
+                            <small class="${statusClass}">${statusText}</small>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="editBudget(${budget.id}); return false;">
+                                <i class="fas fa-edit"></i> Sửa
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="toggleBudget(${budget.id}); return false;">
+                                <i class="fas fa-power-off"></i> ${budget.is_active ? 'Tắt' : 'Bật'}
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteBudget(${budget.id}); return false;">
+                                <i class="fas fa-trash"></i> Xóa
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="progress mb-2" style="height: 20px;">
+                    <div class="progress-bar ${progressColor}" role="progressbar" 
+                         style="width: ${Math.min(percentage, 100)}%;" 
+                         aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
+                        ${percentage.toFixed(1)}%
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between text-muted small">
+                    <span>Đã chi: <strong class="text-dark">${formatCurrency(budget.spent)}</strong></span>
+                    <span>Ngân sách: <strong class="text-dark">${formatCurrency(budget.amount)}</strong></span>
+                    <span>Còn lại: <strong class="${budget.remaining >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(budget.remaining)}</strong></span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
-// Save jar (create or update)
-function saveJar() {
-    const form = document.getElementById('jarForm');
-    const formData = new FormData(form);
-    const jarId = document.getElementById('jar_id').value;
-    
-    const data = {
-        name: formData.get('name'),
-        percentage: parseFloat(formData.get('percentage')),
-        color: formData.get('color'),
-        icon: formData.get('icon'),
-        description: formData.get('description'),
-        categories: formData.get('categories') ? formData.get('categories').split('\n').filter(c => c.trim()) : []
+// Reset budget form
+function resetBudgetForm() {
+    document.getElementById('budgetForm').reset();
+    document.getElementById('budget_id').value = '';
+    document.getElementById('budgetModalTitle').textContent = 'Tạo ngân sách mới';
+    document.getElementById('budget_threshold').value = 80;
+}
+
+// Save budget
+function saveBudget() {
+    const budgetId = document.getElementById('budget_id').value;
+    const formData = {
+        category_id: parseInt(document.getElementById('budget_category').value),
+        amount: parseFloat(document.getElementById('budget_amount').value),
+        period: document.getElementById('budget_period').value,
+        alert_threshold: parseFloat(document.getElementById('budget_threshold').value)
     };
     
-    const url = jarId ? `${BASE_URL}/budgets/api_update_jar/${jarId}` : `${BASE_URL}/budgets/api_create_jar`;
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (!formData.category_id || !formData.amount) {
+        alert('Vui lòng điền đầy đủ thông tin');
+        return;
+    }
+    
+    const url = budgetId 
+        ? `${BASE_URL}/budgets/api_update/${budgetId}`
+        : `${BASE_URL}/budgets/api_create`;
     
     fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(formData)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            SmartSpending.showToast(jarId ? 'Cập nhật nhóm thành công!' : 'Tạo nhóm thành công!', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('createJarModal')).hide();
-            form.reset();
-            loadJars();
+            bootstrap.Modal.getInstance(document.getElementById('createBudgetModal')).hide();
+            loadBudgets();
+            alert(budgetId ? 'Cập nhật ngân sách thành công' : 'Tạo ngân sách thành công');
         } else {
-            SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
+            alert('Lỗi: ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        SmartSpending.showToast('Có lỗi xảy ra', 'error');
+        alert('Đã xảy ra lỗi khi lưu ngân sách');
     });
 }
 
-// Edit jar
-function editJar(jarId) {
-    fetch(`${BASE_URL}/budgets/api_get_jars`)
+// Edit budget
+function editBudget(id) {
+    fetch(`${BASE_URL}/budgets/api_get_all?period=${currentPeriod}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const jar = data.data.jars.find(j => j.id == jarId);
-                if (jar) {
-                    document.getElementById('jarModalTitle').textContent = 'Chỉnh sửa nhóm';
-                    document.getElementById('jar_id').value = jar.id;
-                    document.getElementById('jar_name').value = jar.name;
-                    document.getElementById('jar_percentage').value = jar.percentage;
-                    document.getElementById('jar_color').value = jar.color;
-                    document.getElementById('jar_icon').value = jar.icon || '';
-                    document.getElementById('jar_description').value = jar.description || '';
-                    document.getElementById('jar_categories').value = jar.categories ? 
-                        jar.categories.map(c => c.category_name).join('\n') : '';
+                const budget = data.data.budgets.find(b => b.id == id);
+                if (budget) {
+                    document.getElementById('budget_id').value = budget.id;
+                    document.getElementById('budget_category').value = budget.category_id;
+                    document.getElementById('budget_amount').value = budget.amount;
+                    document.getElementById('budget_period').value = budget.period;
+                    document.getElementById('budget_threshold').value = budget.alert_threshold;
+                    document.getElementById('budgetModalTitle').textContent = 'Sửa ngân sách';
                     
-                    const modal = new bootstrap.Modal(document.getElementById('createJarModal'));
-                    modal.show();
+                    new bootstrap.Modal(document.getElementById('createBudgetModal')).show();
                 }
             }
         });
 }
 
-// Delete jar
-function deleteJar(jarId) {
-    if (!confirm('Bạn có chắc muốn xóa nhóm mục đích này?')) return;
+// Delete budget
+function deleteBudget(id) {
+    if (!confirm('Bạn có chắc muốn xóa ngân sách này?')) return;
     
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    fetch(`${BASE_URL}/budgets/api_delete_jar/${jarId}`, {
+    fetch(`${BASE_URL}/budgets/api_delete/${id}`, {
         method: 'POST',
         headers: {
-            'X-CSRF-Token': csrfToken
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            SmartSpending.showToast('Xóa nhóm thành công!', 'success');
-            loadJars();
+            loadBudgets();
+            alert('Xóa ngân sách thành công');
         } else {
-            SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
+            alert('Lỗi: ' + data.message);
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        SmartSpending.showToast('Có lỗi xảy ra', 'error');
     });
 }
 
-// Reset form when modal is hidden
-document.getElementById('createJarModal').addEventListener('hidden.bs.modal', function() {
-    document.getElementById('jarForm').reset();
-    document.getElementById('jar_id').value = '';
-    document.getElementById('jarModalTitle').textContent = 'Tạo nhóm mới';
-});
+// Toggle budget active status
+function toggleBudget(id) {
+    fetch(`${BASE_URL}/budgets/api_toggle/${id}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadBudgets();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    });
+}
 </script>
 
 <?php $this->partial('footer'); ?>

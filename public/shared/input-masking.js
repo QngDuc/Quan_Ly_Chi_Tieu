@@ -1,4 +1,4 @@
-/**
+/*
  * Input Masking Utility
  * Formats number inputs with thousand separators
  */
