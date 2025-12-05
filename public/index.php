@@ -14,7 +14,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 // Define APP_PATH, CONFIG_PATH, PUBLIC_PATH
-define('APP_PATH', dirname(__DIR__) . '/src');
+define('APP_PATH', dirname(__DIR__) . '/app');
 define('CONFIG_PATH', dirname(__DIR__) . '/config');
 define('PUBLIC_PATH', dirname(__DIR__) . '/public');
 

@@ -14,19 +14,19 @@ class App
     public function run()
     {
         $url = $this->parseUrl();
-        $namespace = 'App\\Controllers';
-        $folderPath = '/controllers';
+        $namespace = 'App\\Http\\Controllers';
+        $folderPath = '/Http/Controllers';
 
         // If no controller is specified, use the default Auth\\Login controller
         if (empty($url[0])) {
-            $namespace = 'App\\Controllers\\Auth';
-            $folderPath = '/controllers/Auth';
+            $namespace = 'App\\Http\\Controllers\\Auth';
+            $folderPath = '/Http/Controllers/Auth';
             $this->controller = 'Login';
         } else {
             // Check if this is an admin route
             if ($url[0] === 'admin') {
-                $namespace = 'App\\Controllers\\Admin';
-                $folderPath = '/controllers/Admin';
+                $namespace = 'App\\Http\\Controllers\\Admin';
+                $folderPath = '/Http/Controllers/Admin';
                 unset($url[0]);
                 $url = array_values($url);
                 
@@ -39,8 +39,8 @@ class App
                 }
             } elseif ($url[0] === 'auth') {
                 // Auth routes
-                $namespace = 'App\\Controllers\\Auth';
-                $folderPath = '/controllers/Auth';
+                $namespace = 'App\\Http\\Controllers\\Auth';
+                $folderPath = '/Http/Controllers/Auth';
                 unset($url[0]);
                 $url = array_values($url);
 
@@ -53,8 +53,8 @@ class App
                 }
             } else {
                 // User routes
-                $namespace = 'App\\Controllers\\User';
-                $folderPath = '/controllers/User';
+                $namespace = 'App\\Http\\Controllers\\User';
+                $folderPath = '/Http/Controllers/User';
                 $this->controller = ucfirst($url[0]);
                 unset($url[0]);
             }
@@ -64,9 +64,9 @@ class App
         $controllerFile = APP_PATH . $folderPath . '/' . $this->controller . '.php';
         if (!file_exists($controllerFile)) {
             // Fallback to Auth\\Login if controller not found
-            $namespace = 'App\\Controllers\\Auth';
+            $namespace = 'App\\Http\\Controllers\\Auth';
             $this->controller = 'Login';
-            $controllerFile = APP_PATH . '/controllers/Auth/Login.php';
+            $controllerFile = APP_PATH . '/Http/Controllers/Auth/Login.php';
         }
         
         require_once $controllerFile;

@@ -1,5 +1,5 @@
 <?php
-namespace App\Controllers\Admin;
+namespace App\Http\Controllers\Admin;
 
 use App\Core\Controllers;
 use App\Core\Response;

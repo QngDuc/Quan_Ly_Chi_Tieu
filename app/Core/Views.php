@@ -10,7 +10,7 @@ class Views
         $this->data = array_merge($this->data, $data);
         extract($this->data);
 
-        $viewPath = dirname(APP_PATH) . '/views/' . $view . '.php';
+        $viewPath = dirname(APP_PATH) . '/resources/views/' . $view . '.php';
 
         if (file_exists($viewPath)) {
             require_once $viewPath;
@@ -33,7 +33,7 @@ class Views
     public function partial($view, $data = [])
     {
         extract($data);
-        $partialPath = dirname(APP_PATH) . '/views/partials/' . $view . '.php';
+        $partialPath = dirname(APP_PATH) . '/resources/views/partials/' . $view . '.php';
         if (file_exists($partialPath)) {
             require_once $partialPath;
         } else {

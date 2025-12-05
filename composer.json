@@ -16,15 +16,15 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "src/",
-            "App\\Core\\": "src/core/",
-            "App\\Controllers\\": "src/controllers/",
-            "App\\Controllers\\User\\": "src/controllers/User/",
-            "App\\Controllers\\Admin\\": "src/controllers/Admin/",
-            "App\\Controllers\\Auth\\": "src/controllers/Auth/",
-            "App\\Models\\": "src/models/",
-            "App\\Services\\": "src/services/",
-            "App\\Middleware\\": "src/middleware/"
+            "App\\": "app/",
+            "App\\Core\\": "app/Core/",
+            "App\\Http\\Controllers\\": "app/Http/Controllers/",
+            "App\\Http\\Controllers\\User\\": "app/Http/Controllers/User/",
+            "App\\Http\\Controllers\\Admin\\": "app/Http/Controllers/Admin/",
+            "App\\Http\\Controllers\\Auth\\": "app/Http/Controllers/Auth/",
+            "App\\Models\\": "app/Models/",
+            "App\\Services\\": "app/Services/",
+            "App\\Middleware\\": "app/Middleware/"
         }
     },
     "config": {
