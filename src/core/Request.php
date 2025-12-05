@@ -31,12 +31,12 @@ class Request
         return $path ?: '/';
     }
 
-    public function get(string $key, $default = null)
+    public function get(string $key, mixed $default = null): mixed
     {
         return $_GET[$key] ?? $default;
     }
 
-    public function session(string $key, $default = null)
+    public function session(string $key, mixed $default = null): mixed
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -44,7 +44,7 @@ class Request
         return $_SESSION[$key] ?? $default;
     }
 
-    public function setSession(string $key, $value)
+    public function setSession(string $key, mixed $value): void
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -68,17 +68,17 @@ class Request
         session_destroy();
     }
 
-    public function post(string $key, $default = null)
+    public function post(string $key, mixed $default = null): mixed
     {
         return $_POST[$key] ?? $default;
     }
 
-    public function input(string $key, $default = null)
+    public function input(string $key, mixed $default = null): mixed
     {
         return $_REQUEST[$key] ?? $default;
     }
 
-    public function json(string $key = null, $default = null)
+    public function json(?string $key = null, mixed $default = null): mixed
     {
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         if ($key) {
@@ -97,12 +97,12 @@ class Request
         $this->routeParams = $params;
     }
 
-    public function getRouteParam(string $key, $default = null)
+    public function getRouteParam(string $key, mixed $default = null): mixed
     {
         return $this->routeParams[$key] ?? $default;
     }
 
-    public function header(string $key, $default = null)
+    public function header(string $key, mixed $default = null): mixed
     {
         $key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
         return $_SERVER[$key] ?? $default;

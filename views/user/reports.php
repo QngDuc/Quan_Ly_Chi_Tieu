@@ -253,6 +253,23 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('balance').className = balance >= 0 ? 'text-success mb-0' : 'text-danger mb-0';
         document.getElementById('savingsRate').textContent = savingsRate + '%';
     }
+
+    // Export functionality
+    const exportBtn = document.getElementById('exportReport');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            const period = document.getElementById('periodFilter')?.value || 'last_3_months';
+            const type = document.getElementById('typeFilter')?.value || 'all';
+            
+            const params = new URLSearchParams({
+                period: period,
+                type: type
+            });
+            
+            const url = `${BASE_URL}/reports/export_excel?${params.toString()}`;
+            window.location.href = url;
+        });
+    }
 });
 </script>
 

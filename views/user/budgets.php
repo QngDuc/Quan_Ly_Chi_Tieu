@@ -9,10 +9,10 @@ $this->partial('header');
 
 <section>
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Quản lý Ngân sách - Phương pháp Hũ</h3>
+        <h3>Quản lý Ngân sách - Quy tắc 50/30/20</h3>
         <div class="d-flex gap-2">
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createJarModal">
-                <i class="bi bi-plus-circle"></i> Tạo hũ mới
+                <i class="bi bi-plus-circle"></i> Tạo nhóm mới
             </button>
         </div>
     </div>
@@ -38,10 +38,13 @@ $this->partial('header');
     <!-- Empty State -->
     <div class="text-center py-5" id="emptyState" style="display: none;">
         <i class="bi bi-jar text-muted" style="font-size: 4rem;"></i>
-        <h5 class="mt-3 text-muted">Chưa có hũ nào</h5>
-        <p class="text-muted">Tạo hũ đầu tiên để bắt đầu quản lý ngân sách</p>
+        <h5 class="mt-3 text-muted">Chưa có nhóm mục đích nào</h5>
+        <p class="text-muted">Tạo nhóm đầu tiên để bắt đầu quản lý ngân sách</p>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createJarModal">
-            <i class="bi bi-plus-circle"></i> Tạo hũ mới
+            <i class="bi bi-plus-circle"></i> Tạo nhóm tùy chỉnh
+        </button>
+        <button class="btn btn-outline-primary ms-2" onclick="createDefault503020()">
+            <i class="bi bi-magic"></i> Tạo ngân sách 50/30/20
         </button>
     </div>
 </section>
@@ -51,7 +54,7 @@ $this->partial('header');
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="jarModalTitle">Tạo hũ mới</h5>
+                <h5 class="modal-title" id="jarModalTitle">Tạo nhóm mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -59,16 +62,16 @@ $this->partial('header');
                     <input type="hidden" id="jar_id" name="jar_id">
                     
                     <div class="mb-3">
-                        <label class="form-label">Tên hũ *</label>
+                        <label class="form-label">Tên nhóm *</label>
                         <input type="text" class="form-control" id="jar_name" name="name" required 
-                               placeholder="VD: Thiết yếu, Tiết kiệm, Du lịch...">
+                               placeholder="VD: Thiết yếu, Mong muốn, Tiết kiệm...">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Phần trăm phân bổ (%) *</label>
                         <input type="number" class="form-control" id="jar_percentage" name="percentage" 
                                required min="0" max="100" step="1" placeholder="10">
-                        <small class="text-muted">Tổng tất cả các hũ không được vượt quá 100%</small>
+                        <small class="text-muted">Tổng tất cả các nhóm không được vượt quá 100%</small>
                     </div>
 
                     <div class="mb-3">
@@ -87,14 +90,14 @@ $this->partial('header');
                     <div class="mb-3">
                         <label class="form-label">Mô tả</label>
                         <textarea class="form-control" id="jar_description" name="description" 
-                                  rows="3" placeholder="Mô tả mục đích của hũ này..."></textarea>
+                                  rows="3" placeholder="Mô tả mục đích của nhóm này..."></textarea>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Danh mục con (mỗi dòng một mục)</label>
                         <textarea class="form-control" id="jar_categories" name="categories" 
                                   rows="4" placeholder="Ăn uống&#10;Tiền nhà&#10;Điện nước"></textarea>
-                        <small class="text-muted">Nhập các danh mục chi tiết cho hũ này</small>
+                        <small class="text-muted">Nhập các danh mục chi tiết cho nhóm này</small>
                     </div>
                 </form>
             </div>
@@ -170,6 +173,33 @@ function renderJars(jars) {
     `).join('');
 }
 
+// Create default 50/30/20 jars
+function createDefault503020() {
+    if (!confirm('Bạn có chắc muốn tạo bộ nhóm 50/30/20 mặc định?')) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    fetch(`${BASE_URL}/budgets/api_create_default_503020`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-Token': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            SmartSpending.showToast('Đã tạo bộ nhóm 50/30/20 thành công!', 'success');
+            loadJars();
+        } else {
+            SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        SmartSpending.showToast('Có lỗi xảy ra', 'error');
+    });
+}
+
 // Save jar (create or update)
 function saveJar() {
     const form = document.getElementById('jarForm');
@@ -199,7 +229,7 @@ function saveJar() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            SmartSpending.showToast(jarId ? 'Cập nhật hũ thành công!' : 'Tạo hũ thành công!', 'success');
+            SmartSpending.showToast(jarId ? 'Cập nhật nhóm thành công!' : 'Tạo nhóm thành công!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('createJarModal')).hide();
             form.reset();
             loadJars();
@@ -221,7 +251,7 @@ function editJar(jarId) {
             if (data.success) {
                 const jar = data.data.jars.find(j => j.id == jarId);
                 if (jar) {
-                    document.getElementById('jarModalTitle').textContent = 'Chỉnh sửa hũ';
+                    document.getElementById('jarModalTitle').textContent = 'Chỉnh sửa nhóm';
                     document.getElementById('jar_id').value = jar.id;
                     document.getElementById('jar_name').value = jar.name;
                     document.getElementById('jar_percentage').value = jar.percentage;
@@ -240,7 +270,7 @@ function editJar(jarId) {
 
 // Delete jar
 function deleteJar(jarId) {
-    if (!confirm('Bạn có chắc muốn xóa hũ này?')) return;
+    if (!confirm('Bạn có chắc muốn xóa nhóm mục đích này?')) return;
     
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
@@ -253,7 +283,7 @@ function deleteJar(jarId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            SmartSpending.showToast('Xóa hũ thành công!', 'success');
+            SmartSpending.showToast('Xóa nhóm thành công!', 'success');
             loadJars();
         } else {
             SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
@@ -269,7 +299,7 @@ function deleteJar(jarId) {
 document.getElementById('createJarModal').addEventListener('hidden.bs.modal', function() {
     document.getElementById('jarForm').reset();
     document.getElementById('jar_id').value = '';
-    document.getElementById('jarModalTitle').textContent = 'Tạo hũ mới';
+    document.getElementById('jarModalTitle').textContent = 'Tạo nhóm mới';
 });
 </script>
 

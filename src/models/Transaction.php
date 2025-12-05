@@ -25,8 +25,8 @@ class Transaction
         $sql = "
             SELECT 
                 DATE_FORMAT(date, '{$format}') as period,
-                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
-                SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expense
+                SUM(CASE WHEN type = 'income' THEN ABS(amount) ELSE 0 END) as income,
+                SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expense
             FROM transactions
             WHERE user_id = ? AND date BETWEEN ? AND ?
             GROUP BY period
@@ -87,8 +87,8 @@ class Transaction
     {
         $stmt = $this->db->prepare("
             SELECT
-                COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) AS income,
-                COALESCE(SUM(ABS(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END)), 0) AS expense
+                COALESCE(SUM(CASE WHEN type = 'income' THEN ABS(amount) ELSE 0 END), 0) AS income,
+                COALESCE(SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END), 0) AS expense
             FROM transactions t
             WHERE t.user_id = ? AND t.date BETWEEN ? AND ?
         ");
@@ -100,8 +100,8 @@ class Transaction
     {
         $stmt = $this->db->prepare("
             SELECT 
-                COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) - 
-                COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS balance 
+                COALESCE(SUM(CASE WHEN type = 'income' THEN ABS(amount) ELSE 0 END), 0) - 
+                COALESCE(SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END), 0) AS balance 
             FROM transactions 
             WHERE user_id = ?
         ");
@@ -204,8 +204,8 @@ class Transaction
     {
         $stmt = $this->db->prepare("
             SELECT 
-                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
-                SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expense
+                SUM(CASE WHEN type = 'income' THEN ABS(amount) ELSE 0 END) as income,
+                SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expense
             FROM transactions 
             WHERE user_id = ? 
             AND date BETWEEN ? AND ?
@@ -228,9 +228,9 @@ class Transaction
         
         // Add type filter if specified
         if ($type === 'expense') {
-            $sql .= " AND t.amount < 0";
+            $sql .= " AND t.type = 'expense'";
         } elseif ($type === 'income') {
-            $sql .= " AND t.amount > 0";
+            $sql .= " AND t.type = 'income'";
         }
         
         $sql .= "
