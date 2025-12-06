@@ -1,7 +1,7 @@
 <?php $this->partial('header', ['title' => 'SmartSpending - Quản Lý Tài Chính']); ?>
 
 <!-- Dashboard Specific Styles -->
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>/resources/css/dashboard.css">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/dashboard.css">
 
 <div class="dashboard-container">
     <!-- Stats Grid -->
@@ -157,7 +157,6 @@
     window.pieChartData = <?php echo $pieChartData ?? '[]'; ?>;
     window.lineChartData = <?php echo $lineChartData ?? '[]'; ?>;
 </script>
-
-<!-- Page-specific JS loaded by footer from resources/js/dashboard.js -->
+<script src="<?php echo BASE_URL; ?>/js/dashboard.js"></script>
 
 <?php $this->partial('footer'); ?>

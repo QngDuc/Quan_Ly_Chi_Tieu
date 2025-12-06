@@ -2,8 +2,7 @@
 use App\Middleware\CsrfProtection;
 $this->partial('header'); 
 ?>
-
-<!-- Transactions Specific Styles: header will include streamed CSS -->
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/css/transactions.css">
 <?php echo CsrfProtection::getTokenMeta(); ?>
 
 <section>

@@ -1,7 +1,7 @@
 <?php $this->partial('header'); ?>
 
 <!-- Goals Specific Styles -->
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>/resources/css/goals.css">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/goals.css">
 
 <section class="goals-section">
     <!-- Page Header -->
@@ -235,6 +235,6 @@
 </div>
 
 <!-- Goals JavaScript -->
-<script src="<?php echo BASE_URL; ?>/resources/js/goals.js"></script>
+<script src="<?php echo BASE_URL; ?>/js/goals.js"></script>
 
 <?php $this->partial('footer'); ?>

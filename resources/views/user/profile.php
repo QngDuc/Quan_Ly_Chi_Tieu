@@ -1,7 +1,7 @@
 <?php $this->partial('header'); ?>
 
 <!-- Profile Specific Styles -->
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>/resources/css/profile.css">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/profile.css">
 
 <div class="container-fluid" style="background: white; min-height: 100vh; padding: 40px 20px;">
     <div class="container" style="max-width: 800px;">
@@ -200,6 +200,6 @@
     </div>
 </div>
 
-<script src="<?php echo BASE_URL; ?>/resources/js/profile.js"></script>
+<script src="<?php echo BASE_URL; ?>/js/profile.js"></script>
 
 <?php $this->partial('footer'); ?>
