@@ -22,10 +22,10 @@
 
 
     <!-- Input Masking -->
-    <script src="<?php echo BASE_URL; ?>/resources/css/input-masking.js"></script>
+    <script src="<?php echo BASE_URL; ?>/resources/js/input-masking.js"></script>
 
-    <!-- App.js - Shared utilities -->
-    <script src="<?php echo BASE_URL; ?>/resources/css/app.js"></script>
+    <!-- App.js - Shared utilities (public/shared/app.js served by webserver) -->
+    <script src="<?php echo BASE_URL; ?>/shared/app.js"></script>
 
 <!-- Page-specific JavaScript -->
 <?php
@@ -42,7 +42,7 @@ if ($page === 'home' || $page === '') {
             $projectRoot = realpath(__DIR__ . '/../../..');
             $publicPagePath = $projectRoot . '/public/user/' . $page . '/' . $page . '.js';
             if (file_exists($publicPagePath)) {
-                echo '<script src="' . BASE_URL . '/public/user/' . $page . '/' . $page . '.js"></script>' . "\n";
+                echo '<script src="' . BASE_URL . '/user/' . $page . '/' . $page . '.js"></script>' . "\n";
             } else {
                 // fallback to resources (useful during development)
                 echo '<script src="' . BASE_URL . '/resources/js/' . $page . '.js"></script>' . "\n";

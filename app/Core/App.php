@@ -18,8 +18,8 @@ class App
         // Allows links like BASE_URL/resources/css/login.css to be streamed to browser
         if (!empty($url) && $url[0] === 'resources') {
             $resourceType = $url[1] ?? '';
-            // Only allow css under resources/css
-            if ($resourceType === 'css' && isset($url[2])) {
+            // Allow streaming for css and js under resources/css and resources/js
+            if (in_array($resourceType, ['css', 'js']) && isset($url[2])) {
                 $segments = array_slice($url, 2);
                 $requested = implode('/', $segments);
                 // Prevent path traversal and suspicious chars
@@ -28,11 +28,14 @@ class App
                     echo 'Invalid resource path';
                     exit;
                 }
-
                 $projectRoot = dirname(APP_PATH);
-                $filePath = $projectRoot . '/resources/css/' . $requested;
+                $filePath = $projectRoot . '/resources/' . ($resourceType === 'css' ? 'css/' : 'js/') . $requested;
                 if (file_exists($filePath) && is_file($filePath)) {
-                    header('Content-Type: text/css; charset=utf-8');
+                    if ($resourceType === 'css') {
+                        header('Content-Type: text/css; charset=utf-8');
+                    } else {
+                        header('Content-Type: application/javascript; charset=utf-8');
+                    }
                     header('Cache-Control: public, max-age=86400');
                     readfile($filePath);
                     exit;

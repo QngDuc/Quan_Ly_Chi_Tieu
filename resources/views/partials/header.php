@@ -1,58 +1,66 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $this->escape($title ?? 'Quản Lý Chi Tiêu'); ?></title>
-    <link rel="icon" type="image/png" href="<?php echo BASE_URL; ?>/icon&image/icon.ico">
-    <link rel="apple-touch-icon" href="<?php echo BASE_URL; ?>/icon&image/icon.ico">
+    <link rel="icon" type="image/png" href="<?php echo BASE_URL; ?>/images/icon.png">
+    <!-- <link rel="apple-touch-icon" href="<?php echo BASE_URL; ?>/icon&image/icon.ico"> -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>/shared/style.css" rel="stylesheet">
-    
+
     <script>
         const BASE_URL = '<?php echo BASE_URL; ?>';
     </script>
 
     <!-- Page-specific CSS -->
     <?php
-        $rawUrl = trim($_GET['url'] ?? '', '/');
-        if ($rawUrl === '') {
-            $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-            $basePath = BASE_URL;
-            if ($basePath !== '' && strpos($requestUri, $basePath) === 0) {
-                $path = substr($requestUri, strlen($basePath));
-            } else {
-                $path = $requestUri;
-            }
-            $path = strtok($path, '?');
-            $rawUrl = trim($path, '/');
+    $rawUrl = trim($_GET['url'] ?? '', '/');
+    if ($rawUrl === '') {
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $basePath = BASE_URL;
+        if ($basePath !== '' && strpos($requestUri, $basePath) === 0) {
+            $path = substr($requestUri, strlen($basePath));
+        } else {
+            $path = $requestUri;
         }
+        $path = strtok($path, '?');
+        $rawUrl = trim($path, '/');
+    }
 
-        $segments = $rawUrl !== '' ? explode('/', $rawUrl) : [];
-        $page = $segments[0] ?? '';
-        if ($page === 'home' || $page === '') { $page = 'dashboard'; }
+    $segments = $rawUrl !== '' ? explode('/', $rawUrl) : [];
+    $page = $segments[0] ?? '';
+    if ($page === 'home' || $page === '') {
+        $page = 'dashboard';
+    }
 
-        // Load page-specific CSS if it exists (from module-specific folders)
-        if (in_array($page, ['dashboard', 'transactions', 'budgets', 'goals', 'reports', 'profile'])) {
-            $cssFile = BASE_URL . '/user/' . $page . '/' . $page . '.css';
-            echo '<link href="' . $cssFile . '" rel="stylesheet">' . "\n";
-        } elseif ($page === 'admin') {
-            $cssFile = BASE_URL . '/admin/dashboard.css';
-            echo '<link href="' . $cssFile . '" rel="stylesheet">' . "\n";
-        }
+    // Prefer resources/css/{page}.css if present (we stream resources/* via App router)
+    $projectRoot = realpath(__DIR__ . '/../../..');
+    $resourceCssPath = $projectRoot . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . $page . '.css';
+    if (in_array($page, ['dashboard', 'transactions', 'budgets', 'goals', 'reports', 'profile']) && file_exists($resourceCssPath)) {
+        $ver = filemtime($resourceCssPath) ?: time();
+        $cssFile = BASE_URL . '/resources/css/' . $page . '.css?v=' . $ver;
+        echo '<link href="' . $cssFile . '" rel="stylesheet">' . "\n";
+        // Debug comment to help verify CSS path in browser view-source
+        echo '<!-- resourceCssPath: ' . $resourceCssPath . ' exists -->' . "\n";
+    }
     ?>
 </head>
+
 <body>
     <header class="navbar">
         <div class="brand">
             <h2><i class="fas fa-wallet me-2"></i>Smart<span>Spending</span></h2>
         </div>
-        
+
         <nav class="nav-links">
             <?php
-                $isActive = function($name) use ($page) { return $page === $name ? 'active' : ''; };
+            $isActive = function ($name) use ($page) {
+                return $page === $name ? 'active' : '';
+            };
             ?>
             <a href="<?php echo BASE_URL; ?>/dashboard" class="<?php echo $isActive('dashboard'); ?>">Tổng quan</a>
             <a href="<?php echo BASE_URL; ?>/transactions" class="<?php echo $isActive('transactions'); ?>">Giao dịch</a>
@@ -70,7 +78,9 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                     <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/profile"><i class="fas fa-user me-2"></i>Hồ sơ</a></li>
-                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
                     <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/auth/login/logout"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
                 </ul>
             </div>

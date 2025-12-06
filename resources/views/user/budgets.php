@@ -23,6 +23,11 @@ $this->partial('header');
     </div>
 
     <!-- Summary Cards -->
+        <!-- Category chips (large, sticky) -->
+        <div id="categoryChipsWrap" class="mb-3">
+            <div id="categoryChips" class="d-flex gap-2 flex-wrap"></div>
+        </div>
+
     <div class="row g-3 mb-4" id="summaryCards">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100">
@@ -140,10 +145,14 @@ $this->partial('header');
 window.BASE_URL = "<?php echo BASE_URL; ?>";
 let categories = [];
 let currentPeriod = 'monthly';
+let selectedCategoryId = null; // filter by category when set
+let currentBudgetsCache = [];
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadCategories();
-    loadBudgets();
+    // Ensure categories are loaded first so we can filter out budgets
+    loadCategories().then(() => {
+        loadBudgets();
+    });
     
     // Period change handler
     document.getElementById('periodSelect').addEventListener('change', function(e) {
@@ -159,15 +168,75 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Load categories for dropdown
 function loadCategories() {
-    fetch(`${BASE_URL}/budgets/api_get_categories`)
+    return fetch(`${BASE_URL}/budgets/api_get_categories`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 categories = data.data.categories;
                 renderCategoryOptions();
+                renderCategoryChips();
             }
+            return categories;
         })
-        .catch(error => console.error('Error loading categories:', error));
+        .catch(error => {
+            console.error('Error loading categories:', error);
+            return [];
+        });
+}
+
+// Render large category chips for quick filtering
+function renderCategoryChips() {
+    const wrap = document.getElementById('categoryChips');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    // Add an "All" chip
+    const allChip = document.createElement('button');
+    allChip.className = 'category-chip btn btn-sm btn-outline-secondary';
+    allChip.textContent = 'Tất cả';
+    allChip.onclick = () => {
+        selectedCategoryId = null;
+        updateChipActive();
+        renderBudgets(currentBudgetsCache);
+    };
+    wrap.appendChild(allChip);
+
+    categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'category-chip btn btn-sm btn-light';
+        btn.innerHTML = `<span style="display:inline-block;width:10px;height:10px;background:${cat.color || '#000'};border-radius:2px;margin-right:8px;"></span> ${cat.name}`;
+        btn.onclick = () => {
+            selectedCategoryId = parseInt(cat.id);
+            updateChipActive();
+            renderBudgets(currentBudgetsCache);
+        };
+        wrap.appendChild(btn);
+    });
+
+    updateChipActive();
+}
+
+function updateChipActive() {
+    const chips = document.querySelectorAll('#categoryChips .category-chip');
+    chips.forEach(ch => ch.classList.remove('active'));
+    if (selectedCategoryId === null) {
+        // first chip is All
+        if (chips[0]) chips[0].classList.add('active');
+    } else {
+        chips.forEach(ch => {
+            const txt = ch.textContent || '';
+            if (txt.includes(String(selectedCategoryId))) {
+                // Not reliable to find by id text; instead rely on index mapping: skip
+            }
+        });
+        // simpler approach: iterate categories and mark matching index+1
+        categories.forEach((cat, idx) => {
+            if (parseInt(cat.id) === selectedCategoryId) {
+                const chip = document.querySelectorAll('#categoryChips .category-chip')[idx+1];
+                if (chip) chip.classList.add('active');
+            }
+        });
+    }
 }
 
 // Render category dropdown
@@ -196,8 +265,23 @@ function loadBudgets() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                renderBudgets(data.data.budgets);
-                renderSummary(data.data.summary);
+                // Filter out budgets whose category no longer exists (legacy budgets)
+                const validBudgets = (data.data.budgets || []).filter(b => {
+                    return categories.some(c => parseInt(c.id) === parseInt(b.category_id));
+                });
+
+                // cache for client-side filtering by chips
+                currentBudgetsCache = validBudgets;
+
+                renderBudgets(validBudgets);
+
+                // Adjust summary to reflect filtered budgets totals
+                const adjustedSummary = Object.assign({}, data.data.summary);
+                adjustedSummary.total_budget = validBudgets.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+                adjustedSummary.total_spent = validBudgets.reduce((s, b) => s + (parseFloat(b.spent) || 0), 0);
+                adjustedSummary.remaining = adjustedSummary.total_budget - adjustedSummary.total_spent;
+
+                renderSummary(adjustedSummary);
             }
         })
         .catch(error => console.error('Error:', error));
@@ -220,7 +304,13 @@ function renderBudgets(budgets) {
     const list = document.getElementById('budgetsList');
     const emptyState = document.getElementById('emptyState');
     
-    if (!budgets || budgets.length === 0) {
+    // Apply category chip filter if selected
+    let filtered = budgets || [];
+    if (selectedCategoryId !== null) {
+        filtered = filtered.filter(b => parseInt(b.category_id) === parseInt(selectedCategoryId));
+    }
+
+    if (!filtered || filtered.length === 0) {
         list.innerHTML = '';
         emptyState.style.display = 'block';
         return;
@@ -228,7 +318,7 @@ function renderBudgets(budgets) {
     
     emptyState.style.display = 'none';
     
-    list.innerHTML = budgets.map(budget => {
+    list.innerHTML = filtered.map(budget => {
         const percentage = parseFloat(budget.percentage_used) || 0;
         const isOverBudget = percentage > 100;
         const isNearLimit = percentage >= budget.alert_threshold && percentage <= 100;
@@ -356,13 +446,15 @@ function editBudget(id) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const budget = data.data.budgets.find(b => b.id == id);
+                // Prefer the budgets currently rendered (which are filtered)
+                const allBudgets = data.data.budgets || [];
+                const budget = allBudgets.find(b => b.id == id);
                 if (budget) {
                     document.getElementById('budget_id').value = budget.id;
                     document.getElementById('budget_category').value = budget.category_id;
                     document.getElementById('budget_amount').value = budget.amount;
-                    document.getElementById('budget_period').value = budget.period;
-                    document.getElementById('budget_threshold').value = budget.alert_threshold;
+                    document.getElementById('budget_period').value = budget.period || 'monthly';
+                    document.getElementById('budget_threshold').value = budget.alert_threshold ?? 80;
                     document.getElementById('budgetModalTitle').textContent = 'Sửa ngân sách';
                     
                     new bootstrap.Modal(document.getElementById('createBudgetModal')).show();
@@ -410,5 +502,13 @@ function toggleBudget(id) {
     });
 }
 </script>
+
+<style>
+/* Large category chips and sticky behavior */
+#categoryChipsWrap{position:sticky;top:72px;z-index:1020;background:transparent;padding-top:6px;padding-bottom:6px}
+.category-chip{font-size:0.95rem;padding:8px 12px;border-radius:14px;border:1px solid rgba(0,0,0,0.06)}
+.category-chip.active{background:#0d6efd;color:#fff;border-color:#0d6efd}
+#categoryChips .btn{box-shadow:0 1px 2px rgba(0,0,0,0.03)}
+</style>
 
 <?php $this->partial('footer'); ?>

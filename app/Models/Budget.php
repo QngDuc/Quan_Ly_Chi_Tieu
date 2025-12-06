@@ -18,6 +18,28 @@ class Budget
      */
     public function getBudgetsWithSpending($userId, $period = 'monthly')
     {
+        // Compute date range based on requested period (client can request weekly/monthly/yearly)
+        $now = new \DateTime();
+        switch ($period) {
+            case 'weekly':
+                $startDate = (clone $now)->modify('monday this week')->format('Y-m-d');
+                $endDate = (clone $now)->modify('sunday this week')->format('Y-m-d');
+                break;
+            case 'yearly':
+                $startDate = (clone $now)->modify('first day of january ' . $now->format('Y'))->format('Y-01-01');
+                $endDate = (clone $now)->modify('last day of december ' . $now->format('Y'))->format('Y-12-31');
+                break;
+            case 'daily':
+                $startDate = $now->format('Y-m-d');
+                $endDate = $now->format('Y-m-d');
+                break;
+            case 'monthly':
+            default:
+                $startDate = $now->format('Y-m-01');
+                $endDate = $now->format('Y-m-t');
+                break;
+        }
+
         $sql = "
             SELECT 
                 b.*,
@@ -34,14 +56,14 @@ class Budget
                 t.category_id = b.category_id 
                 AND t.user_id = b.user_id
                 AND t.type = 'expense'
-                AND t.date BETWEEN b.start_date AND b.end_date
-            WHERE b.user_id = ? AND b.period = ? AND b.is_active = 1
+                AND t.date BETWEEN ? AND ?
+            WHERE b.user_id = ? AND b.is_active = 1
             GROUP BY b.id, c.name, c.color, c.icon, c.type
             ORDER BY b.created_at DESC
         ";
-        
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$userId, $period]);
+        $stmt->execute([$startDate, $endDate, $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -136,29 +158,43 @@ class Budget
      */
     public function getSummary($userId, $period = 'monthly')
     {
+        // Compute date range for the summary based on requested period
+        $now = new \DateTime();
+        switch ($period) {
+            case 'weekly':
+                $startDate = (clone $now)->modify('monday this week')->format('Y-m-d');
+                $endDate = (clone $now)->modify('sunday this week')->format('Y-m-d');
+                break;
+            case 'yearly':
+                $startDate = (clone $now)->modify('first day of january ' . $now->format('Y'))->format('Y-01-01');
+                $endDate = (clone $now)->modify('last day of december ' . $now->format('Y'))->format('Y-12-31');
+                break;
+            case 'daily':
+                $startDate = $now->format('Y-m-d');
+                $endDate = $now->format('Y-m-d');
+                break;
+            case 'monthly':
+            default:
+                $startDate = $now->format('Y-m-01');
+                $endDate = $now->format('Y-m-t');
+                break;
+        }
+
         $sql = "
             SELECT 
                 COUNT(*) as total_budgets,
                 SUM(b.amount) as total_budget_amount,
-                SUM(COALESCE(spent.total, 0)) as total_spent
+                COALESCE(SUM(t.amount), 0) as total_spent
             FROM budgets b
-            LEFT JOIN (
-                SELECT 
-                    t.category_id,
-                    SUM(t.amount) as total
-                FROM transactions t
-                INNER JOIN budgets b2 ON 
-                    t.category_id = b2.category_id 
-                    AND t.user_id = b2.user_id
-                    AND t.date BETWEEN b2.start_date AND b2.end_date
-                WHERE t.user_id = ? AND t.type = 'expense' AND b2.period = ?
-                GROUP BY t.category_id
-            ) spent ON b.category_id = spent.category_id
-            WHERE b.user_id = ? AND b.period = ? AND b.is_active = 1
+            LEFT JOIN transactions t ON t.category_id = b.category_id
+                AND t.user_id = b.user_id
+                AND t.type = 'expense'
+                AND t.date BETWEEN ? AND ?
+            WHERE b.user_id = ? AND b.is_active = 1
         ";
-        
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$userId, $period, $userId, $period]);
+        $stmt->execute([$startDate, $endDate, $userId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -167,6 +203,28 @@ class Budget
      */
     public function getAlerts($userId, $period = 'monthly')
     {
+        // Compute date range based on requested period
+        $now = new \DateTime();
+        switch ($period) {
+            case 'weekly':
+                $startDate = (clone $now)->modify('monday this week')->format('Y-m-d');
+                $endDate = (clone $now)->modify('sunday this week')->format('Y-m-d');
+                break;
+            case 'yearly':
+                $startDate = (clone $now)->modify('first day of january ' . $now->format('Y'))->format('Y-01-01');
+                $endDate = (clone $now)->modify('last day of december ' . $now->format('Y'))->format('Y-12-31');
+                break;
+            case 'daily':
+                $startDate = $now->format('Y-m-d');
+                $endDate = $now->format('Y-m-d');
+                break;
+            case 'monthly':
+            default:
+                $startDate = $now->format('Y-m-01');
+                $endDate = $now->format('Y-m-t');
+                break;
+        }
+
         $sql = "
             SELECT 
                 b.*,
@@ -179,15 +237,15 @@ class Budget
                 t.category_id = b.category_id 
                 AND t.user_id = b.user_id
                 AND t.type = 'expense'
-                AND t.date BETWEEN b.start_date AND b.end_date
-            WHERE b.user_id = ? AND b.period = ? AND b.is_active = 1
+                AND t.date BETWEEN ? AND ?
+            WHERE b.user_id = ? AND b.is_active = 1
             GROUP BY b.id, c.name
             HAVING percentage_used >= b.alert_threshold
             ORDER BY percentage_used DESC
         ";
-        
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$userId, $period]);
+        $stmt->execute([$startDate, $endDate, $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

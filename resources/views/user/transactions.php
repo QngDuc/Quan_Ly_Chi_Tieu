@@ -3,8 +3,7 @@ use App\Middleware\CsrfProtection;
 $this->partial('header'); 
 ?>
 
-<!-- Transactions Specific Styles -->
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>/user/transactions/transactions_new.css">
+<!-- Transactions Specific Styles: header will include streamed CSS -->
 <?php echo CsrfProtection::getTokenMeta(); ?>
 
 <section>
@@ -276,7 +275,5 @@ $this->partial('header');
     window.BASE_URL = "<?php echo BASE_URL; ?>";
 </script>
 <!-- Page-specific JS loaded by footer from resources/js/transactions.js -->
-<script src="<?php echo BASE_URL; ?>/resources/css/input-masking.js"></script>
-<script src="<?php echo BASE_URL; ?>/public/shared/app.js"></script>
 
 <?php $this->partial('footer'); ?>

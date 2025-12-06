@@ -98,7 +98,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?php echo BASE_URL; ?>/resources/css/app.js"></script>
+    <script src="<?php echo BASE_URL; ?>/shared/app.js"></script>
     <script>
         async function toggleRole(userId, currentRole) {
             const newRole = currentRole === 'admin' ? 'user' : 'admin';
