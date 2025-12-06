@@ -1,8 +1,18 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /Quan_Ly_Chi_Tieu/
-    # Chuyển hướng tất cả các yêu cầu đến thư mục public
+
+    # Redirect root access to the public folder
+    RewriteRule ^$ public/ [L]
+
+    # Serve static files from public directory
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond public/%{REQUEST_URI} -f
     RewriteRule ^(.*)$ public/$1 [L]
+
+    # For any other request, forward to public/index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/index.php?url=$1 [QSA,L]
 </IfModule>
