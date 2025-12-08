@@ -101,6 +101,41 @@ class FinancialUtils
     }
 
     /**
+     * Format amount in a short, human-friendly Vietnamese form.
+     * Examples:
+     *  - 5000000 => "5 tr"
+     *  - 1250000000 => "1.3 tỷ"
+     *  - 45000 => "45k"
+     * @param float $amount
+     * @return string
+     */
+    public static function formatShortAmount($amount)
+    {
+        $n = abs((float)$amount);
+
+        if ($n >= 1000000000) { // billions -> tỷ
+            $value = $n / 1000000000;
+            $formatted = (intval($value) == $value) ? intval($value) : round($value, 1);
+            return $formatted . ' tỷ';
+        }
+
+        if ($n >= 1000000) { // millions -> tr
+            $value = $n / 1000000;
+            $formatted = (intval($value) == $value) ? intval($value) : round($value, 1);
+            return $formatted . ' tr';
+        }
+
+        if ($n >= 1000) { // thousands -> k
+            $value = $n / 1000;
+            $formatted = (intval($value) == $value) ? intval($value) : round($value, 1);
+            return $formatted . 'k';
+        }
+
+        // less than 1k: show full number with separators
+        return number_format($n, 0, ',', '.');
+    }
+
+    /**
      * Generate month labels for charts
      * @param string $startDate Start date
      * @param string $endDate End date

@@ -4,28 +4,45 @@
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
 
-<footer>
-    <div class="footer-content">
-        <p>© 2025 SmartSpending. Bảo lưu mọi quyền.</p>
-        <div class="footer-links">
-            <a href="<?php echo BASE_URL; ?>/privacy">Chính sách bảo mật</a>
-            <a href="<?php echo BASE_URL; ?>/terms">Điều khoản sử dụng</a>
+
+
+<footer class="site-footer simple-footer">
+    <div class="footer-inner">
+        <div class="footer-left">© <?php echo date('Y'); ?> SmartSpending</div>
+
+        <div class="footer-center">
+            <a href="<?php echo BASE_URL; ?>/privacy">Chính sách</a>
+            <span class="sep">·</span>
+            <a href="<?php echo BASE_URL; ?>/terms">Điều khoản</a>
+            <span class="sep">·</span>
             <a href="<?php echo BASE_URL; ?>/contact">Liên hệ</a>
+        </div>
+
+        <div class="footer-right">
+            <a href="mailto:huyhoangpro187@gmail.com" class="footer-email">huyhoangpro187@gmail.com</a>
+            <span class="social-row">
+                <a href="https://facebook.com/smartspending" target="_blank" rel="noopener" aria-label="Facebook" class="social-icon"><i class="bi bi-facebook"></i></a>
+                <a href="https://twitter.com/smartspending" target="_blank" rel="noopener" aria-label="Twitter" class="social-icon"><i class="bi bi-twitter"></i></a>
+                <a href="https://instagram.com/smartspending" target="_blank" rel="noopener" aria-label="Instagram" class="social-icon"><i class="bi bi-instagram"></i></a>
+            </span>
         </div>
     </div>
 </footer>
 
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap Icons CSS (for footer/social icons) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 <!-- Chart.js for visualizations -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 
-    <!-- Input Masking -->
-    <script src="<?php echo BASE_URL; ?>/shared/input-masking.js"></script>
+<!-- Input Masking -->
+<script src="<?php echo BASE_URL; ?>/shared/input-masking.js"></script>
 
-    <!-- App.js - Shared utilities (public/shared/app.js served by webserver) -->
-    <script src="<?php echo BASE_URL; ?>/shared/app.js"></script>
+<!-- App.js - Shared utilities (public/shared/app.js served by webserver) -->
+<script src="<?php echo BASE_URL; ?>/shared/app.js"></script>
 
 <!-- Page-specific JavaScript -->
 <?php
@@ -37,17 +54,17 @@ if ($page === 'home' || $page === '') {
     $page = 'dashboard';
 }
 
-        // Load page-specific JS: prefer public/user/{page}/{page}.js if published, else fall back to resources/js/{page}.js
-        if ($page && in_array($page, ['dashboard', 'transactions', 'budgets', 'goals', 'reports', 'profile'])) {
-            $projectRoot = realpath(__DIR__ . '/../../..');
-            $publicPagePath = $projectRoot . '/public/user/' . $page . '/' . $page . '.js';
-            if (file_exists($publicPagePath)) {
-                echo '<script src="' . BASE_URL . '/user/' . $page . '/' . $page . '.js"></script>' . "\n";
-            } else {
-                // fallback to public/js (useful during development)
-                echo '<script src="' . BASE_URL . '/js/' . $page . '.js"></script>' . "\n";
-            }
-        }
+// Load page-specific JS: prefer public/user/{page}/{page}.js if published, else fall back to resources/js/{page}.js
+if ($page && in_array($page, ['dashboard', 'transactions', 'budgets', 'goals', 'reports', 'profile'])) {
+    $projectRoot = realpath(__DIR__ . '/../../..');
+    $publicPagePath = $projectRoot . '/public/user/' . $page . '/' . $page . '.js';
+    if (file_exists($publicPagePath)) {
+        echo '<script src="' . BASE_URL . '/user/' . $page . '/' . $page . '.js"></script>' . "\n";
+    } else {
+        // fallback to public/js (useful during development)
+        echo '<script src="' . BASE_URL . '/js/' . $page . '.js"></script>' . "\n";
+    }
+}
 ?>
 
 <?php

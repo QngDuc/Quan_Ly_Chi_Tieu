@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,27 +15,44 @@
             padding: 2rem 0;
             margin-bottom: 2rem;
         }
+
         .stat-card {
             border-left: 4px solid;
             transition: transform 0.2s;
         }
+
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
         }
-        .stat-card.users { border-color: #3498db; }
-        .stat-card.transactions { border-color: #2ecc71; }
-        .stat-card.categories { border-color: #e74c3c; }
-        .stat-card.active { border-color: #f39c12; }
+
+        .stat-card.users {
+            border-color: #3498db;
+        }
+
+        .stat-card.transactions {
+            border-color: #2ecc71;
+        }
+
+        .stat-card.categories {
+            border-color: #e74c3c;
+        }
+
+        .stat-card.active {
+            border-color: #f39c12;
+        }
+
         .quick-action {
             transition: all 0.3s;
         }
+
         .quick-action:hover {
             background-color: #f8f9fa;
             transform: scale(1.05);
         }
     </style>
 </head>
+
 <body>
     <div class="admin-header">
         <div class="container">
@@ -192,43 +210,44 @@
 
         <!-- System Activity -->
         <?php if (!empty($stats['system_activity'])): ?>
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Hoạt động hệ thống (7 ngày gần nhất)</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Ngày</th>
-                                        <th>Số giao dịch</th>
-                                        <th>Thu nhập</th>
-                                        <th>Chi tiêu</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($stats['system_activity'] as $activity): ?>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Hoạt động hệ thống (7 ngày gần nhất)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
                                         <tr>
-                                            <td><?php echo date('d/m/Y', strtotime($activity['activity_date'])); ?></td>
-                                            <td><?php echo $activity['transaction_count']; ?></td>
-                                            <td class="text-success">+<?php echo number_format($activity['total_income'], 0, ',', '.'); ?>đ</td>
-                                            <td class="text-danger">-<?php echo number_format($activity['total_expense'], 0, ',', '.'); ?>đ</td>
+                                            <th>Ngày</th>
+                                            <th>Số giao dịch</th>
+                                            <th>Thu nhập</th>
+                                            <th>Chi tiêu</th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($stats['system_activity'] as $activity): ?>
+                                            <tr>
+                                                <td><?php echo date('d/m/Y', strtotime($activity['activity_date'])); ?></td>
+                                                <td><?php echo $activity['transaction_count']; ?></td>
+                                                <td class="text-success">+<?php echo number_format($activity['total_income'], 0, ',', '.'); ?>đ</td>
+                                                <td class="text-danger">-<?php echo number_format($activity['total_expense'], 0, ',', '.'); ?>đ</td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
         <?php endif; ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?php echo BASE_URL; ?>/shared/app.js"></script>
 </body>
+
 </html>

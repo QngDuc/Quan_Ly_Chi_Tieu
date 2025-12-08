@@ -188,6 +188,120 @@ class Reports extends Controllers
         exit;
     }
 
+    /**
+     * Export report to real XLSX using PhpSpreadsheet when available.
+     * Falls back to the HTML-based Excel export if library isn't installed.
+     */
+    public function export_xlsx()
+    {
+        // If PhpSpreadsheet not available, fallback
+        if (!class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) {
+            // Redirect to legacy export
+            $query = $_SERVER['QUERY_STRING'] ?? '';
+            header('Location: ' . BASE_URL . '/reports/export_excel' . ($query ? '?' . $query : ''));
+            exit;
+        }
+
+        $userId = $this->getCurrentUserId();
+        $period = $_GET['period'] ?? 'last_3_months';
+        $type = $_GET['type'] ?? 'all';
+
+        // Determine date range (reuse logic from export_excel)
+        if ($period === 'this_month') {
+            $startDate = date('Y-m-01');
+            $endDate = date('Y-m-t');
+        } elseif ($period === 'last_3_months') {
+            $startDate = date('Y-m-01', strtotime('-2 months'));
+            $endDate = date('Y-m-t');
+        } elseif ($period === 'last_6_months') {
+            $startDate = date('Y-m-01', strtotime('-5 months'));
+            $endDate = date('Y-m-t');
+        } elseif ($period === 'this_year') {
+            $startDate = date('Y-01-01');
+            $endDate = date('Y-12-31');
+        } else {
+            $startDate = date('Y-m-01', strtotime('-2 months'));
+            $endDate = date('Y-m-t');
+        }
+
+        $db = (new \App\Core\ConnectDB())->getConnection();
+        $sql = "
+            SELECT t.date, t.description, c.name AS category, t.type, t.amount
+            FROM transactions t
+            JOIN categories c ON t.category_id = c.id
+            WHERE t.user_id = ? AND t.date BETWEEN ? AND ?
+        ";
+        $params = [$userId, $startDate, $endDate];
+        if ($type === 'income' || $type === 'expense') {
+            $sql .= " AND t.type = ?";
+            $params[] = $type;
+        }
+        $sql .= " ORDER BY t.date ASC, t.id ASC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Create spreadsheet
+        $spreadsheetClass = 'PhpOffice\\PhpSpreadsheet\\Spreadsheet';
+        $spreadsheet = new $spreadsheetClass();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Báo cáo');
+
+        // Header
+        $sheet->setCellValue('A1', 'Báo cáo chi tiêu');
+        $sheet->mergeCells('A1:E1');
+
+        $sheet->fromArray(['Kỳ báo cáo', 'Loại', 'Từ ngày', 'Đến ngày', 'Tổng thu nhập / chi tiêu'], null, 'A2');
+        // Compute totals
+        $totalIncome = 0.0; $totalExpense = 0.0;
+        foreach ($rows as $r) {
+            if (($r['type'] ?? '') === 'income') {
+                $totalIncome += (float)$r['amount'];
+            } else {
+                $totalExpense += abs((float)$r['amount']);
+            }
+        }
+
+        $sheet->setCellValue('A3', $period);
+        $sheet->setCellValue('B3', $type);
+        $sheet->setCellValue('C3', $startDate);
+        $sheet->setCellValue('D3', $endDate);
+        $sheet->setCellValue('E3', number_format($totalIncome - $totalExpense, 2, '.', ','));
+
+        // Detail table header
+        $startRow = 6;
+        $sheet->fromArray(['Ngày', 'Loại', 'Danh mục', 'Mô tả', 'Số tiền (VND)'], null, 'A' . $startRow);
+
+        $r = $startRow + 1;
+        foreach ($rows as $row) {
+            $sheet->setCellValue('A' . $r, $row['date']);
+            $sheet->setCellValue('B' . $r, ($row['type'] === 'income') ? 'Thu nhập' : 'Chi tiêu');
+            $sheet->setCellValue('C' . $r, $row['category']);
+            $sheet->setCellValue('D' . $r, $row['description']);
+            $sheet->setCellValue('E' . $r, (float)$row['amount']);
+            $r++;
+        }
+
+        // Auto-size columns
+        foreach (range('A', 'E') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Send XLSX to client
+        $filename = 'BaoCao_' . ($period) . '_' . ($type) . '_' . date('Ymd_His') . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $ioFactory = 'PhpOffice\\PhpSpreadsheet\\IOFactory';
+        $writer = call_user_func([$ioFactory, 'createWriter'], $spreadsheet, 'Xlsx');
+        if ($writer && method_exists($writer, 'save')) {
+            $writer->save('php://output');
+        }
+        exit;
+    }
+
     private function getLineChartData($userId, $period = 'last_3_months')
     {
         $months = [];

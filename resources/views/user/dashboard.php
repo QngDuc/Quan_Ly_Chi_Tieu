@@ -1,4 +1,9 @@
-<?php $this->partial('header', ['title' => 'SmartSpending - Quản Lý Tài Chính']); ?>
+<?php
+
+use App\Services\FinancialUtils;
+
+$this->partial('header', ['title' => 'SmartSpending - Quản Lý Tài Chính']);
+?>
 
 <!-- Dashboard Specific Styles -->
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/dashboard.css">
@@ -135,12 +140,22 @@
                         <tr>
                             <td><?php echo $this->escape($tx['description']); ?></td>
                             <td><?php echo $this->escape($tx['category_name']); ?></td>
-                            <td><?php echo date('d/m/Y', strtotime($tx['transaction_date'])); ?></td>
+                            <?php
+                            // Safely resolve transaction date from multiple possible keys
+                            $rawDate = $tx['transaction_date'] ?? $tx['date'] ?? $tx['transactionDate'] ?? $tx['created_at'] ?? null;
+                            $displayDate = $rawDate ? date('d/m/Y', strtotime($rawDate)) : '-';
+                            ?>
+                            <td><?php echo $displayDate; ?></td>
                             <td class="amount" style="text-align:right;">
-                                <?php if ($tx['amount'] < 0): ?>
-                                    <span class="text-dark">- <?php echo number_format(abs($tx['amount']), 0, ',', '.'); ?> ₫</span>
+                                <?php
+                                $amount = isset($tx['amount']) ? (float)$tx['amount'] : 0;
+                                $sign = ($amount < 0) ? '- ' : '+ ';
+                                $formatted = number_format(abs($amount), 0, ',', '.');
+                                ?>
+                                <?php if ($amount < 0): ?>
+                                    <span class="text-dark"><?php echo $sign . $formatted; ?> ₫</span>
                                 <?php else: ?>
-                                    <span class="text-green">+ <?php echo number_format($tx['amount'], 0, ',', '.'); ?> ₫</span>
+                                    <span class="text-green"><?php echo $sign . $formatted; ?> ₫</span>
                                 <?php endif; ?>
                             </td>
                         </tr>

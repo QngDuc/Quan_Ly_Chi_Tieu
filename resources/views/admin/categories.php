@@ -1,6 +1,8 @@
-<?php 
+<?php
+
 use App\Middleware\CsrfProtection;
-$this->partial('header'); 
+
+$this->partial('header');
 ?>
 
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>/admin/dashboard.css">
@@ -101,7 +103,7 @@ $this->partial('header');
             <div class="modal-body">
                 <form id="categoryForm">
                     <input type="hidden" id="category_id">
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Tên danh mục *</label>
                         <input type="text" class="form-control" id="category_name" required>
@@ -136,39 +138,39 @@ $this->partial('header');
 </div>
 
 <script>
-window.BASE_URL = "<?php echo BASE_URL; ?>";
+    window.BASE_URL = "<?php echo BASE_URL; ?>";
 
-document.addEventListener('DOMContentLoaded', function() {
-    loadCategories();
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCategories();
+    });
 
-function loadCategories() {
-    fetch(`${BASE_URL}/admin/categories/api_get_categories`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                renderCategories(data.data.categories);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-}
+    function loadCategories() {
+        fetch(`${BASE_URL}/admin/categories/api_get_categories`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderCategories(data.data.categories);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
 
-function renderCategories(categories) {
-    const income = categories.filter(c => c.type === 'income');
-    const expense = categories.filter(c => c.type === 'expense');
-    
-    document.getElementById('incomeCount').textContent = income.length;
-    document.getElementById('expenseCount').textContent = expense.length;
-    
-    const incomeTable = document.getElementById('incomeCategories');
-    const expenseTable = document.getElementById('expenseCategories');
-    
-    incomeTable.innerHTML = income.map(cat => renderRow(cat)).join('');
-    expenseTable.innerHTML = expense.map(cat => renderRow(cat)).join('');
-}
+    function renderCategories(categories) {
+        const income = categories.filter(c => c.type === 'income');
+        const expense = categories.filter(c => c.type === 'expense');
 
-function renderRow(category) {
-    return `
+        document.getElementById('incomeCount').textContent = income.length;
+        document.getElementById('expenseCount').textContent = expense.length;
+
+        const incomeTable = document.getElementById('incomeCategories');
+        const expenseTable = document.getElementById('expenseCategories');
+
+        incomeTable.innerHTML = income.map(cat => renderRow(cat)).join('');
+        expenseTable.innerHTML = expense.map(cat => renderRow(cat)).join('');
+    }
+
+    function renderRow(category) {
+        return `
         <tr>
             <td><i class="fas ${category.icon}" style="color: ${category.color}"></i></td>
             <td>${category.name}</td>
@@ -183,102 +185,102 @@ function renderRow(category) {
             </td>
         </tr>
     `;
-}
-
-function openCreateModal() {
-    document.getElementById('modalTitle').textContent = 'Thêm Danh mục';
-    document.getElementById('categoryForm').reset();
-    document.getElementById('category_id').value = '';
-    document.getElementById('category_color').value = '#3498db';
-}
-
-function saveCategory() {
-    const id = document.getElementById('category_id').value;
-    const data = {
-        name: document.getElementById('category_name').value,
-        type: document.getElementById('category_type').value,
-        color: document.getElementById('category_color').value,
-        icon: document.getElementById('category_icon').value || 'fa-circle'
-    };
-    
-    if (!data.name) {
-        SmartSpending.showToast('Vui lòng nhập tên danh mục', 'error');
-        return;
     }
-    
-    const url = id ? `${BASE_URL}/admin/categories/api_update/${id}` : `${BASE_URL}/admin/categories/api_create`;
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            SmartSpending.showToast(id ? 'Cập nhật thành công!' : 'Tạo danh mục thành công!', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
-            loadCategories();
-        } else {
-            SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        SmartSpending.showToast('Có lỗi xảy ra', 'error');
-    });
-}
 
-function editCategory(id) {
-    fetch(`${BASE_URL}/admin/categories/api_get_categories`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const category = data.data.categories.find(c => c.id == id);
-                if (category) {
-                    document.getElementById('modalTitle').textContent = 'Chỉnh sửa Danh mục';
-                    document.getElementById('category_id').value = category.id;
-                    document.getElementById('category_name').value = category.name;
-                    document.getElementById('category_type').value = category.type;
-                    document.getElementById('category_color').value = category.color;
-                    document.getElementById('category_icon').value = category.icon;
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
-                    modal.show();
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'Thêm Danh mục';
+        document.getElementById('categoryForm').reset();
+        document.getElementById('category_id').value = '';
+        document.getElementById('category_color').value = '#3498db';
+    }
+
+    function saveCategory() {
+        const id = document.getElementById('category_id').value;
+        const data = {
+            name: document.getElementById('category_name').value,
+            type: document.getElementById('category_type').value,
+            color: document.getElementById('category_color').value,
+            icon: document.getElementById('category_icon').value || 'fa-circle'
+        };
+
+        if (!data.name) {
+            SmartSpending.showToast('Vui lòng nhập tên danh mục', 'error');
+            return;
+        }
+
+        const url = id ? `${BASE_URL}/admin/categories/api_update/${id}` : `${BASE_URL}/admin/categories/api_create`;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    SmartSpending.showToast(id ? 'Cập nhật thành công!' : 'Tạo danh mục thành công!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
+                    loadCategories();
+                } else {
+                    SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
                 }
-            }
-        });
-}
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                SmartSpending.showToast('Có lỗi xảy ra', 'error');
+            });
+    }
 
-function deleteCategory(id) {
-    if (!confirm('Bạn có chắc muốn xóa danh mục này?')) return;
-    
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    fetch(`${BASE_URL}/admin/categories/api_delete/${id}`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-Token': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            SmartSpending.showToast('Xóa danh mục thành công!', 'success');
-            loadCategories();
-        } else {
-            SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        SmartSpending.showToast('Có lỗi xảy ra', 'error');
-    });
-}
+    function editCategory(id) {
+        fetch(`${BASE_URL}/admin/categories/api_get_categories`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const category = data.data.categories.find(c => c.id == id);
+                    if (category) {
+                        document.getElementById('modalTitle').textContent = 'Chỉnh sửa Danh mục';
+                        document.getElementById('category_id').value = category.id;
+                        document.getElementById('category_name').value = category.name;
+                        document.getElementById('category_type').value = category.type;
+                        document.getElementById('category_color').value = category.color;
+                        document.getElementById('category_icon').value = category.icon;
+
+                        const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
+                        modal.show();
+                    }
+                }
+            });
+    }
+
+    function deleteCategory(id) {
+        if (!confirm('Bạn có chắc muốn xóa danh mục này?')) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        fetch(`${BASE_URL}/admin/categories/api_delete/${id}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    SmartSpending.showToast('Xóa danh mục thành công!', 'success');
+                    loadCategories();
+                } else {
+                    SmartSpending.showToast(data.message || 'Có lỗi xảy ra', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                SmartSpending.showToast('Có lỗi xảy ra', 'error');
+            });
+    }
 </script>
 
 <?php $this->partial('footer'); ?>

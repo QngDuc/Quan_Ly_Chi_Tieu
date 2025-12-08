@@ -44,19 +44,8 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
 // Composer Autoloader
 require_once dirname(__DIR__) . '/vendor/autoload.php'; 
 
-// Load environment variables from .env file
-$envFile = dirname(__DIR__) . '/.env';
-if (file_exists($envFile)) {
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) continue; // Skip comments
-        list($key, $value) = explode('=', $line, 2);
-        $key = trim($key);
-        $value = trim($value);
-        $_ENV[$key] = $value;
-        putenv("$key=$value");
-    }
-}
+// Load environment variables using a centralized loader (phpdotenv preferred)
+\App\Core\EnvLoader::load(dirname(__DIR__));
 
 // Load constants
 require_once CONFIG_PATH . '/constants.php';

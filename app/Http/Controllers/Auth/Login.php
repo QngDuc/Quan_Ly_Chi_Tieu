@@ -69,7 +69,7 @@ class Login extends Controllers
             }
         }
 
-        $this->response->json($response);
+        $this->response->json($response)->send();
     }
 
     public function api_login()
@@ -105,7 +105,7 @@ class Login extends Controllers
             }
         }
 
-        $this->response->json($response);
+        $this->response->json($response)->send();
     }
 
     public function logout()

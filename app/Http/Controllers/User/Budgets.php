@@ -76,6 +76,15 @@ class Budgets extends Controllers
                 ]
             ]);
         } catch (\Exception $e) {
+            // Write detailed error to a log file for debugging
+            try {
+                $logDir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'logs';
+                if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
+                $msg = '[' . date('Y-m-d H:i:s') . '] api_get_all error: ' . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n\n";
+                @file_put_contents($logDir . DIRECTORY_SEPARATOR . 'budgets_error.log', $msg, FILE_APPEND);
+            } catch (\Exception $ex) {
+                // ignore logging failures
+            }
             Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }
@@ -99,6 +108,15 @@ class Budgets extends Controllers
                 'categories' => $categories
             ]);
         } catch (\Exception $e) {
+            // Write detailed error to a log file for debugging
+            try {
+                $logDir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'logs';
+                if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
+                $msg = '[' . date('Y-m-d H:i:s') . '] api_get_categories error: ' . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n\n";
+                @file_put_contents($logDir . DIRECTORY_SEPARATOR . 'budgets_error.log', $msg, FILE_APPEND);
+            } catch (\Exception $ex) {
+                // ignore logging failures
+            }
             Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
         }
     }

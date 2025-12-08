@@ -132,6 +132,9 @@
 .transactions-table {
     width: 100%;
     margin-bottom: 0 !important; 
+    border-collapse: collapse; /* ensure borders render as a single line */
+    table-layout: fixed; /* keep columns stable */
+    display: table;
 }
 
 .transactions-table thead {
@@ -150,6 +153,7 @@
 /* 5. Dòng giao dịch (Table Row) - HOVER & AESTHETICS */
 .transactions-table tbody tr {
     transition: background-color 0.2s ease;
+    border-bottom: 1px solid var(--border); /* move border to row for full-width line */
 }
 
 .transactions-table tbody tr:hover {
@@ -160,7 +164,8 @@
     padding: 18px 24px;
     font-size: 14px;
     color: var(--text-dark);
-    border-bottom: 1px solid var(--border);
+    border-bottom: none; /* removed from cells to avoid gaps */
+    box-sizing: border-box;
 }
 
 .transactions-category-icon {
@@ -184,6 +189,8 @@
 
 .transactions-amount {
     font-weight: 600;
+    text-align: right; /* ensure numbers align to right */
+    white-space: nowrap;
 }
 
 .transactions-type-badge span {
@@ -191,6 +198,55 @@
     border-radius: 20px;
     font-size: 12px;
     font-weight: 500;
+    display: inline-block;
+}
+
+/* Table alignment improvements */
+.transactions-table th,
+.transactions-table td {
+    vertical-align: middle; /* center content vertically */
+}
+
+.transactions-category-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.transactions-category-name {
+    display: inline-block;
+    font-size: 14px;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.transactions-category-icon {
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+}
+
+.transactions-type-badge {
+    text-align: center; /* center the badge cell */
+}
+
+.transactions-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center; /* center action buttons */
+    align-items: center;
+}
+
+.transactions-btn-edit, .transactions-btn-delete {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
 }
 
 /* 6. RESPONSIVE FIXES (QUAN TRỌNG) */
@@ -243,35 +299,80 @@
 
 /* 7. FUTURE-PROOFING AND PADDING FOR 300 LINES (295 lines total) */
 
-/* Nút chỉnh sửa/xóa */
-.transactions-btn-edit, .transactions-btn-delete {
-    padding: 6px 10px;
-    font-size: 12px;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
+.transactions-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+.transactions-btn-edit,
+.transactions-btn-delete {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 14px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    border-radius: 50%;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.transactions-btn-edit {
-    background: #fff3cd;
-    color: #ffc107;
-}
-
-.transactions-btn-delete {
-    background: #f8d7da;
-    color: var(--danger);
-}
-
-.transactions-actions {
-    text-align: center;
-}
+.transactions-btn-edit { background: #fff8e6; color: #d4a017; }
+.transactions-btn-delete { background: #fff0f1; color: var(--danger); }
 
 .transactions-empty {
     text-align: center;
     padding: 60px;
     color: var(--text-muted);
+}
+
+/* 1) Reset common inline/form elements inside table cells to remove accidental white boxes
+   Keep action buttons (edit/delete) intact by restoring their styles afterwards. */
+.transactions-table td .form-control,
+.transactions-table td input,
+.transactions-table td textarea,
+.transactions-table td select,
+.transactions-table td .badge,
+.transactions-table td .transactions-category-name,
+.transactions-table td span {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Ensure the actions container fills the cell vertically and centers its content */
+.transactions-table td .transactions-actions {
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Slightly reduce cell padding so inner elements align better */
+.transactions-table td {
+    padding: 14px 18px;
+}
+
+/* give action column consistent width so border and buttons align */
+.transactions-table tbody tr td:last-child {
+    width: 140px;
+    max-width: 160px;
+}
+
+/* ensure responsive wrapper doesn't clip the row-border */
+.table-responsive {
+    overflow: visible;
+}
+
+/* Restore backgrounds for action buttons (use !important because reset above is broad) */
+.transactions-btn-edit {
+    background: #fff8e6 !important;
+    color: #d4a017 !important;
+}
+.transactions-btn-delete {
+    background: #fff0f1 !important;
+    color: var(--danger) !important;
 }

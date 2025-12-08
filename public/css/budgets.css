@@ -1,106 +1,528 @@
-/* === BUDGETS PAGE STYLES (MONEY LOVER AESTHETICS & LAYOUT FIX) === */
+/* Redesigned Budgets page styles */
 :root {
-    /* Lấy các biến từ Global Style */
     --primary: #1abc9c;
-    --text-dark: #2c3e50;
-    --text-muted: #7f8c8d;
-    --border: #ecf0f1;
-    --bg-main: #f5f7fa;
-    --success: #27ae60;
-    --danger: #e74c3c;
-    --radius-lg: 12px;
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-    --bg-white: #ffffff;
+    --muted: #6c757d;
+    --success: #1e9b6a;
+    --danger: #dc3545;
+    --card-radius: 12px;
+    --shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
 }
 
-/* 1. HEADER */
-.card-header h5 {
-    font-weight: 600;
+.budgets-page {
+    max-width: 1100px
 }
 
-/* 2. SUMMARY CARDS (ĐỔ BÓNG & HOVER) */
-/* Tăng Specificity để chống ghi đè cho các thẻ Card nằm trong layout Bootstrap (.row) */
-section .row .col-md-4 .card {
-    border: none !important;
-    /* Loại bỏ border cứng của Bootstrap */
-    border-radius: var(--radius-lg);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    /* Đổ bóng nhẹ nhàng */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    /* Hiệu ứng mượt */
+.budgets-top h2 {
+    font-weight: 600
 }
 
-section .row .col-md-4 .card:hover {
-    transform: translateY(-4px);
-    /* Nhấc lên khi hover */
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-    /* Đổ bóng mạnh hơn */
+.icon-round {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px
 }
 
-/* 3. CATEGORY CHIPS (FILTER) */
-#categoryChips .category-chip {
+.icon-round.bg-primary {
+    background: var(--primary)
+}
+
+.icon-round.bg-danger {
+    background: var(--danger)
+}
+
+.icon-round.bg-success {
+    background: var(--success)
+}
+
+.summary-card {
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+    border: none
+}
+
+#categoryChips {
+    gap: 8px
+}
+
+.category-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     padding: 8px 12px;
-    border-radius: 14px;
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.9rem
 }
 
-#categoryChips .category-chip.active {
+.category-chip.active {
     background: var(--primary);
-    color: var(--bg-white);
-    border-color: var(--primary);
+    color: #fff;
+    border-color: var(--primary)
 }
 
-/* 4. BUDGET LIST ITEMS (Tăng cường style item list) */
-.budget-item {
-    padding: 15px 0;
-    margin-bottom: 0;
-    border-bottom: 1px solid var(--border);
+.budgets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px
 }
 
-.budget-item:last-child {
-    border-bottom: none;
+.budget-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid #eef2ff;
+    background: #fff
 }
 
-.budget-item:hover {
-    background: #fcfcfc;
-    transition: background 0.2s ease;
+.budget-info {
+    display: flex;
+    gap: 12px;
+    align-items: center
 }
 
-.category-icon {
-    width: 36px;
-    height: 36px;
+.budget-category-icon {
+    width: 46px;
+    height: 46px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 18px
+}
+
+.budget-meta {
+    display: flex;
+    flex-direction: column
+}
+
+.budget-meta .label {
+    font-size: 0.85rem;
+    color: var(--muted)
+}
+
+.budget-meta .amount {
+    font-weight: 600
+}
+
+.budget-actions .btn {
+    min-width: 36px
+}
+
+.progress-bar.small {
+    height: 10px;
+    border-radius: 6px
+}
+
+/* slightly larger spacing for clarity */
+.budgets-list .budget-card {
+    padding: 16px
+}
+
+.budget-meta .amount {
+    font-size: 1.05rem
+}
+
+/* Category chooser styles (match provided screenshots) */
+.category-chooser-list {
+    padding: 6px
+}
+
+.category-group {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    background: transparent;
+}
+
+.category-group-header {
+    font-weight: 600;
+    color: #4b5563;
+    background: #f1f3f5;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e6e9ec;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.95rem;
+}
+
+/* group badge shown on header (number of top-level categories) */
+.category-group-header .group-badge {
+    display: inline-block;
+    min-width: 30px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f1f3f5;
+    color: #495057;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.category-group-header .group-title {
+    font-weight: 600
+}
+
+.category-items {
+    display: block;
+    background: #fff;
+}
+
+.category-row {
+    width: 100%;
+    border: none;
+    text-align: left;
+    background: #fff;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+}
+
+.category-row+.category-row,
+.category-parent-wrap+.category-parent-wrap {
+    border-top: 1px solid #f1f3f5;
+}
+
+.category-row:hover {
+    background: #f6fff7;
+}
+
+.category-row .cat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-right: 12px;
+    position: relative;
+    z-index: 2;
+}
+
+.category-row .cat-name {
+    font-size: 0.98rem;
+    color: #212529;
+    margin-left: 6px;
+}
+
+/* Child container indentation: visually nest subcategories under their parent */
+.category-children {
+    margin-left: 56px;
+    padding-left: 0;
+    background: transparent;
+}
+
+.category-children .category-row {
+    padding-left: 8px;
+    background: transparent;
+}
+
+.child-row .cat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     font-size: 16px;
-    background-color: var(--bg-main);
-    color: var(--primary);
 }
 
-/* 5. FIX BUDGET COLORS */
-.bg-primary {
-    background: var(--primary) !important;
+.category-row .cat-icon{ box-shadow: 0 2px 6px rgba(16,24,40,0.06); border: 2px solid rgba(0,0,0,0.03); width:44px; height:44px }
+.category-children .category-row { padding-top:10px; padding-bottom:10px }
+
+/* Selected row style */
+.category-row.selected, .category-row.active-row { background: #eefaf0 }
+
+/* Reset chooser list padding to match screenshot */
+.category-chooser-list { padding: 0 }
+
+.category-row .cat-name { margin-left: 0 }
+
+.child-row .cat-name {
+    color: #495057;
 }
 
-.bg-danger {
-    background: var(--danger) !important;
+/* caret toggle (use lightweight span to avoid duplicate button chrome) */
+.toggle-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
 }
 
-.bg-success {
-    background: var(--success) !important;
+.toggle-child:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.12);
 }
 
-.text-primary {
-    color: var(--primary) !important;
+.toggle-child i {
+    transition: transform 0.18s ease;
 }
 
-.text-danger {
-    color: var(--danger) !important;
+.toggle-child i.fa-rotate-90 {
+    transform: rotate(90deg);
 }
 
-.text-success {
-    color: var(--success) !important;
+/* dotted vertical connector to mimic screenshot */
+.category-group .category-items {
+    position: relative;
+}
+
+.category-group .category-items::before {
+    content: '';
+    position: absolute;
+    left: 40px;
+    top: 20px;
+    bottom: 12px;
+    width: 2px;
+    border-left: 2px dotted #e6ece3;
+}
+
+
+#emptyState {
+    color: var(--muted)
+}
+
+/* Responsive tweaks */
+@media (max-width:767px) {
+    .budgets-top {
+        align-items: flex-start
+    }
+
+    .budgets-page {
+        padding: 0 12px
+    }
+}
+
+/* Modal small fixes */
+.modal .form-label {
+    font-weight: 500
+}
+
+/* Table layout for budgets list to match design mockup */
+.budget-table th {
+    font-weight: 600;
+    border-bottom: 1px solid #eef2ff;
+    color: #495057
+}
+
+.budget-table td {
+    vertical-align: middle;
+    border-top: none;
+}
+
+.budget-table .cat-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px
+}
+
+.budget-table .cat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff
+}
+
+.budget-table .cat-name {
+    font-weight: 600
+}
+
+.budget-table .small-muted {
+    color: var(--muted);
+    font-size: 0.85rem
+}
+
+.budget-table .amount {
+    font-weight: 600
+}
+
+.budget-table .remaining {
+    color: var(--success);
+    font-weight: 600
+}
+
+.budget-table .progress-cell {
+    min-width: 220px
+}
+
+.budget-table .progress {
+    height: 10px;
+    border-radius: 8px;
+    background: #f1f6f4
+}
+
+.budget-table .progress .progress-bar {
+    border-radius: 8px
+}
+
+.budget-table .action-buttons .btn {
+    margin-left: 6px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 8px
+}
+
+.budget-table .action-buttons .btn i {
+    font-size: 14px
+}
+
+.budget-table .action-buttons .btn-danger {
+    color: #fff;
+    background: var(--danger);
+    border: none
+}
+
+.budget-table .action-buttons .btn-edit {
+    background: #10B981;
+    color: #fff;
+    border: none
+}
+
+.budget-table .action-buttons .btn-toggle {
+    background: #fff;
+    border: 1px solid #e6ece3
+}
+
+/* Polished circular action badges + hover states */
+.budget-table .action-buttons .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+    transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+    border: none;
+    color: #fff;
+}
+
+.budget-table .action-buttons .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(16, 24, 40, 0.09);
+    opacity: 0.98
+}
+
+.budget-table .action-buttons .btn-edit {
+    background: linear-gradient(180deg, #10b981, #0f9b6f);
+}
+
+.budget-table .action-buttons .btn-toggle {
+    background: linear-gradient(180deg, #14b8a6, #0f8f7a);
+}
+
+.budget-table .action-buttons .btn-danger {
+    background: linear-gradient(180deg, #ef4444, #d23a3a);
+}
+
+.budget-table .action-buttons .btn i {
+    font-size: 14px
+}
+
+/* Add subtle label to progress for small screens (visually matches mock) */
+.budget-table .progress-cell {
+    position: relative
+}
+
+.budget-table .progress-cell .pct-inline {
+    position: absolute;
+    right: 8px;
+    top: 6px;
+    font-size: 0.8rem;
+    color: var(--muted)
+}
+
+/* Progress color tokens */
+.progress-bar.bg-danger {
+    background: linear-gradient(90deg, #ef4444, #dc3545) !important
+}
+
+.progress-bar.bg-warning {
+    background: linear-gradient(90deg, #f59e0b, #f97316) !important
+}
+
+.progress-bar.bg-success {
+    background: linear-gradient(90deg, #10b981, #0f9b6f) !important
+}
+
+/* Tweak category icon to be round like mock */
+.budget-table .cat-icon {
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px
+}
+
+/* Table header and row polish */
+.budget-table thead th {
+    background: transparent;
+    border-bottom: 1px solid #eef2ff;
+    color: #6b7280;
+    font-size: 0.9rem
+}
+
+.budget-table tbody tr {
+    border-bottom: 1px solid rgba(230, 236, 243, 0.6)
+}
+
+/* Row hover highlight to match mock */
+.budget-table tbody tr:hover{ background: linear-gradient(90deg, rgba(16,185,129,0.02), rgba(16,185,129,0.00)); }
+.budget-table tbody tr{ transition: background .12s ease, transform .08s ease }
+.budget-table tbody tr:hover{ transform: translateY(-2px) }
+
+/* Ensure action buttons don't trigger row pointer for non-action cells */
+.budget-table td { cursor: default }
+.budget-table tbody tr td:not(.action-buttons) { cursor: pointer }
+
+/* Mobile: make actions row-friendly */
+@media (max-width:767px) {
+    .budget-table .action-buttons {
+        display: flex;
+        gap: 8px;
+        margin-left: 8px
+    }
+}
+
+/* compact responsive */
+@media (max-width:767px) {
+    .budget-table thead {
+        display: none
+    }
+
+    .budget-table tbody tr {
+        display: block;
+        margin-bottom: 12px;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: var(--shadow);
+        padding: 12px
+    }
+
+    .budget-table td {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0
+    }
+
+    .budget-table .progress-cell {
+        width: 100%
+    }
 }

@@ -266,7 +266,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 type: type
             });
             
-            const url = `${BASE_URL}/reports/export_excel?${params.toString()}`;
+            // Prefer modern XLSX export endpoint
+            const url = `${BASE_URL}/reports/export_xlsx?${params.toString()}`;
             window.location.href = url;
         });
     }

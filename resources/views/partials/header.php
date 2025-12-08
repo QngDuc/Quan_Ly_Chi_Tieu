@@ -16,7 +16,7 @@
         const BASE_URL = '<?php echo BASE_URL; ?>';
     </script>
 
-<?php
+    <?php
     $rawUrl = trim($_GET['url'] ?? '', '/');
     if ($rawUrl === '') {
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
@@ -43,19 +43,25 @@
         $cssFileToLoad = $page;
         // Trang recurring dùng chung style transactions
         if ($page === 'recurring') {
-             $cssFileToLoad = 'transactions';
+            $cssFileToLoad = 'transactions';
         }
     }
-    
+
     // [FIX] Kiểm tra sự tồn tại trong thư mục public/css/ và load trực tiếp
     if ($cssFileToLoad) {
         $staticCssPath = PUBLIC_PATH . '/css/' . $cssFileToLoad . '.css';
         if (file_exists($staticCssPath)) {
-            $ver = filemtime($staticCssPath) ?: time(); 
+            $ver = filemtime($staticCssPath) ?: time();
             // Thay đổi đường dẫn: /resources/css/ -> /css/
             $cssLink = BASE_URL . '/css/' . $cssFileToLoad . '.css?v=' . $ver;
             echo '<link href="' . $cssLink . '" rel="stylesheet">' . "\n";
         }
+    }
+    // Load Chart.js only on dashboard page to avoid extra weight elsewhere
+    if ($page === 'dashboard') {
+        echo '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>' . "\n";
+        // Fallback: if CDN unavailable, attempt to load local copy at /vendor/chart.min.js
+        echo '<script>if(typeof Chart === "undefined"){var s=document.createElement("script");s.src = BASE_URL + "/vendor/chart.min.js";document.head.appendChild(s);}</script>' . "\n";
     }
     ?>
 </head>
@@ -80,8 +86,6 @@
         </nav>
 
         <div class="user-actions">
-            <i class="fas fa-wallet icon-action" title="Ví của tôi"></i>
-
             <div class="dropdown">
                 <a class="icon-action dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="far fa-user-circle" title="Tài khoản"></i>

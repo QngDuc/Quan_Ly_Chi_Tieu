@@ -41,7 +41,7 @@
                             <h4 class="mb-0 text-primary" id="activeGoals"><?php echo $statistics['active_goals'] ?? 0; ?></h4>
                         </div>
                         <div class="stat-icon bg-success-light">
-                            <i class="bi bi-rocket-takeoff"></i>
+                            <i class="bi-activity"></i>
                         </div>
                     </div>
                 </div>
