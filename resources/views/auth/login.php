@@ -132,15 +132,23 @@
 		// Google Sign In
 		function googleSignIn() {
 			const url = '<?= BASE_URL; ?>/auth/login/google_login';
-			console.log('Redirecting to:', url);
-			window.location.href = url;
+			const popupUrl = url + (url.indexOf('?') === -1 ? '?popup=1' : '&popup=1');
+			const w = 600, h = 700;
+			const left = (window.screen.width / 2) - (w / 2);
+			const top = (window.screen.height / 2) - (h / 2);
+			const features = `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,scrollbars=yes`;
+			window.open(popupUrl, 'google_oauth', features).focus();
 		}
 
 		// Google Sign Up
 		function googleSignUp() {
 			const url = '<?= BASE_URL; ?>/auth/login/google_login';
-			console.log('Redirecting to:', url);
-			window.location.href = url;
+			const popupUrl = url + (url.indexOf('?') === -1 ? '?popup=1' : '&popup=1');
+			const w = 600, h = 700;
+			const left = (window.screen.width / 2) - (w / 2);
+			const top = (window.screen.height / 2) - (h / 2);
+			const features = `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,scrollbars=yes`;
+			window.open(popupUrl, 'google_oauth', features).focus();
 		}
         
 		// Show alert function

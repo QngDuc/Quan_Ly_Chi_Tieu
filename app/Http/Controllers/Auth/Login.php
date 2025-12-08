@@ -127,6 +127,13 @@ class Login extends Controllers
         
         // Store state in session for verification
         $this->request->setSession('google_oauth_state', $state);
+        // If called as popup, remember that so callback can respond with JS
+        $isPopup = $this->request->get('popup');
+        if ($isPopup) {
+            $this->request->setSession('google_oauth_popup', true);
+        } else {
+            $this->request->unsetSession('google_oauth_popup');
+        }
         
         $authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" . http_build_query([
             'client_id' => $clientId,
@@ -154,6 +161,12 @@ class Login extends Controllers
         // Check for errors
         if ($error) {
             $this->request->setSession('error', 'Đăng nhập Google bị hủy');
+            if ($this->request->session('google_oauth_popup')) {
+                $this->request->unsetSession('google_oauth_popup');
+                $redirectTarget = BASE_URL . '/auth/login';
+                echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>Đã hủy</title></head><body><script>try{if(window.opener && !window.opener.closed){window.opener.location.href='" . $redirectTarget . "';window.close();}else{window.location.href='" . $redirectTarget . "';}}catch(e){window.location.href='" . $redirectTarget . "';}</script></body></html>";
+                exit();
+            }
             $this->redirect('/auth/login');
             return;
         }
@@ -162,6 +175,12 @@ class Login extends Controllers
         $savedState = $this->request->session('google_oauth_state');
         if (!$state || !$savedState || $state !== $savedState) {
             $this->request->setSession('error', 'Invalid state parameter');
+            if ($this->request->session('google_oauth_popup')) {
+                $this->request->unsetSession('google_oauth_popup');
+                $redirectTarget = BASE_URL . '/auth/login';
+                echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>Lỗi</title></head><body><script>try{if(window.opener && !window.opener.closed){window.opener.location.href='" . $redirectTarget . "';window.close();}else{window.location.href='" . $redirectTarget . "';}}catch(e){window.location.href='" . $redirectTarget . "';}</script></body></html>";
+                exit();
+            }
             $this->redirect('/auth/login');
             return;
         }
@@ -170,6 +189,12 @@ class Login extends Controllers
 
         if (!$code) {
             $this->request->setSession('error', 'Không nhận được mã xác thực');
+            if ($this->request->session('google_oauth_popup')) {
+                $this->request->unsetSession('google_oauth_popup');
+                $redirectTarget = BASE_URL . '/auth/login';
+                echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>Lỗi</title></head><body><script>try{if(window.opener && !window.opener.closed){window.opener.location.href='" . $redirectTarget . "';window.close();}else{window.location.href='" . $redirectTarget . "';}}catch(e){window.location.href='" . $redirectTarget . "';}</script></body></html>";
+                exit();
+            }
             $this->redirect('/auth/login');
             return;
         }
@@ -198,8 +223,15 @@ class Login extends Controllers
                 $this->request->setSession('user_email', $user['email']);
                 $this->request->setSession('user_name', $user['full_name']);
                 $this->request->setSession('role', $user['role'] ?? 'user');
-
-                $this->redirect('/dashboard');
+                // If OAuth initiated from a popup, respond with JS to notify opener and close
+                if ($this->request->session('google_oauth_popup')) {
+                    $this->request->unsetSession('google_oauth_popup');
+                    $redirectTarget = (($user['role'] ?? 'user') === 'admin') ? BASE_URL . '/admin/dashboard' : BASE_URL . '/dashboard';
+                    echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>Đăng nhập...</title></head><body><script>try{if(window.opener && !window.opener.closed){window.opener.location.href='" . $redirectTarget . "';window.close();}else{window.location.href='" . $redirectTarget . "';}}catch(e){window.location.href='" . $redirectTarget . "';}</script></body></html>";
+                    exit();
+                } else {
+                    $this->redirect('/dashboard');
+                }
             } else {
                 // User doesn't exist, create new account
                 $fullName = $userInfo['name'] ?? $userInfo['email'];
@@ -215,13 +247,26 @@ class Login extends Controllers
                     $this->request->setSession('user_name', $userInfo['name'] ?? $userInfo['email']);
                     $this->request->setSession('role', 'user');
 
-                    $this->redirect('/dashboard');
+                    if ($this->request->session('google_oauth_popup')) {
+                        $this->request->unsetSession('google_oauth_popup');
+                        $redirectTarget = BASE_URL . '/dashboard';
+                        echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>Đăng nhập...</title></head><body><script>try{if(window.opener && !window.opener.closed){window.opener.location.href='" . $redirectTarget . "';window.close();}else{window.location.href='" . $redirectTarget . "';}}catch(e){window.location.href='" . $redirectTarget . "';}</script></body></html>";
+                        exit();
+                    } else {
+                        $this->redirect('/dashboard');
+                    }
                 } else {
                     throw new \Exception('Không thể tạo tài khoản');
                 }
             }
         } catch (\Exception $e) {
             $this->request->setSession('error', 'Lỗi: ' . $e->getMessage());
+            if ($this->request->session('google_oauth_popup')) {
+                $this->request->unsetSession('google_oauth_popup');
+                $redirectTarget = BASE_URL . '/auth/login';
+                echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>Lỗi</title></head><body><script>try{if(window.opener && !window.opener.closed){window.opener.location.href='" . $redirectTarget . "';window.close();}else{window.location.href='" . $redirectTarget . "';}}catch(e){window.location.href='" . $redirectTarget . "';}</script></body></html>";
+                exit();
+            }
             $this->redirect('/auth/login');
         }
     }
