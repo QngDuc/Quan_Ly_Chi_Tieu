@@ -110,4 +110,5 @@ class Controllers
         }
         return $this->db;
     }
+
 }

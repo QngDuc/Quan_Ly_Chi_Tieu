@@ -1,6 +1,6 @@
 ### Composer dependencies
 vendor/
-
+.vscode/
 ### Environment configuration
 .env
 .env.local
