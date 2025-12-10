@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * Update charts with new data
      */
     function updateCharts(data) {
+        console.log("Dữ liệu nhận được:", data);
         const styles = getComputedStyle(document.documentElement);
         const gridColor = styles.getPropertyValue('--chart-grid').trim();
         const textColor = styles.getPropertyValue('--chart-text').trim();
@@ -301,4 +302,5 @@ document.addEventListener('DOMContentLoaded', function() {
             loadReportData(false);
         }
     });
+    loadReportData();
 });

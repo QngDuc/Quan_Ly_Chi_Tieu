@@ -12,6 +12,48 @@ use Exception;
 
 class Profile extends Controllers
 {
+    /**
+     * API: Cập nhật cài đặt thông báo (Bước 3)
+     * POST /profile/api_update_preference
+     */
+    public function api_update_preference() {
+        // 1. Chỉ chấp nhận phương thức POST
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
+        }
+
+        try {
+            // 2. Xác thực CSRF Token (Bắt buộc để chống tấn công giả mạo)
+            CsrfProtection::verify();
+            
+            // 3. Lấy dữ liệu JSON từ client gửi lên
+            $data = $this->request->json();
+            
+            // Lấy tên cột (key) và giá trị bật/tắt (value)
+            $key = $data['key'] ?? '';
+            // Chuyển đổi: nếu true -> 1, false -> 0 (để lưu vào MySQL tinyint)
+            $value = (isset($data['value']) && $data['value'] === true) ? 1 : 0;
+
+            // 4. Gọi Model để thực hiện update
+            $userModel = $this->model('User');
+            $userId = $this->getCurrentUserId();
+            
+            // Gọi hàm updateNotificationSetting bạn vừa viết ở Bước 2
+            $success = $userModel->updateNotificationSetting($userId, $key, $value);
+
+            // 5. Trả về kết quả cho Frontend
+            if ($success) {
+                Response::successResponse('Đã lưu cài đặt');
+            } else {
+                // Thất bại thường do tên key gửi lên không nằm trong danh sách cho phép (whitelist)
+                Response::errorResponse('Cập nhật thất bại: Cài đặt không hợp lệ');
+            }
+        } catch (\Exception $e) {
+            Response::errorResponse('Lỗi server: ' . $e->getMessage(), null, 500);
+        }
+    }
+    
     public function __construct()
     {
         parent::__construct();

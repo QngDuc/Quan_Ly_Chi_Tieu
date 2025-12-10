@@ -6,8 +6,9 @@
 USE `quan_ly_chi_tieu`;
 
 SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE `categories`;
-
+-- TRUNCATE TABLE `categories`;
+INSERT INTO users (username, email, password, full_name, role) VALUES
+('huyhoangpro187', 'huyhoangpro187@gmail.com', '$2y$10$M12D3rP.nNSdTxDMq/FQbeJfKwrPHoJSq9.itE/N3gZVt.afkEft.', 'Nguyễn Huy Hoàng', 'admin');
 -- ============================================
 -- NHÓM 1: KHOẢN CHI (EXPENSE)
 -- ============================================

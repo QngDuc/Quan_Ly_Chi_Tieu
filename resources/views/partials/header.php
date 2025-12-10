@@ -5,8 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $this->escape($title ?? 'Quản Lý Chi Tiêu'); ?></title>
-    <!-- <link rel="icon" type="image/png" href="<?php echo BASE_URL; ?>/Quan_Ly_Chi_Tieu/public/icon.png"> -->
-    <!-- <link rel="apple-touch-icon" href="<?php echo BASE_URL; ?>/icon&image/icon.ico"> -->
+    <link rel="icon" type="image/x-icon" href="<?php echo BASE_URL; ?>/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -58,10 +57,10 @@
         }
     }
     // Load Chart.js only on dashboard page to avoid extra weight elsewhere
-    if ($page === 'dashboard') {
+    // Load Chart.js cho cả Dashboard và Reports
+    if (in_array($page, ['dashboard', 'reports'])) {
         echo '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>' . "\n";
-        // Fallback: if CDN unavailable, attempt to load local copy at /vendor/chart.min.js
-        echo '<script>if(typeof Chart === "undefined"){var s=document.createElement("script");s.src = BASE_URL + "/vendor/chart.min.js";document.head.appendChild(s);}</script>' . "\n";
+        //echo '<script>if(typeof Chart === "undefined"){var s=document.createElement("script");s.src = BASE_URL + "/vendor/chart.min.js";document.head.appendChild(s);}</script>' . "\n";
     }
     ?>
 </head>

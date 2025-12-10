@@ -91,7 +91,9 @@
                             <span>Cảnh Báo Giới Hạn Ngân Sách</span>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" class="notification-toggle" 
+                                   data-key="notify_budget_limit" 
+                                   <?php echo ($user['notify_budget_limit'] ?? 1) ? 'checked' : ''; ?>>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -102,7 +104,9 @@
                             <span>Nhắc Nhở Mục Tiêu</span>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" class="notification-toggle" 
+                                   data-key="notify_goal_reminder" 
+                                   <?php echo ($user['notify_goal_reminder'] ?? 1) ? 'checked' : ''; ?>>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -113,13 +117,14 @@
                             <span>Email Tóm Tắt Hàng Tuần</span>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" class="notification-toggle" 
+                                   data-key="notify_weekly_summary" 
+                                   <?php echo ($user['notify_weekly_summary'] ?? 1) ? 'checked' : ''; ?>>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
                 </div>
             </div>
-
             <!-- Data Management -->
             <div class="profile-data-section">
                 <h5 class="profile-data-title">Quản Lý Dữ Liệu</h5>

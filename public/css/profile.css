@@ -359,6 +359,7 @@
 
 /* Modal Styles */
 .profile-modal-content {
+    margin-top: 100px;
     border: none;
     border-radius: 16px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.1);

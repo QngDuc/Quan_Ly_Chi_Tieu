@@ -21,7 +21,6 @@ DROP TABLE IF EXISTS `budgets`;
 DROP TABLE IF EXISTS `transactions`;
 DROP TABLE IF EXISTS `categories`;
 DROP TABLE IF EXISTS `users`;
-DROP TABLE IF EXISTS `jar_templates`;
 
 -- 2. TABLES
 
@@ -34,6 +33,12 @@ CREATE TABLE `users` (
   `full_name` varchar(100) DEFAULT NULL,
   `role` enum('user','admin') NOT NULL DEFAULT 'user',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- Thêm 3 dòng này vào schema luôn cho chắc cốp
+  `notify_budget_limit` tinyint(1) NOT NULL DEFAULT 1,
+  `notify_goal_reminder` tinyint(1) NOT NULL DEFAULT 1,
+  `notify_weekly_summary` tinyint(1) NOT NULL DEFAULT 1,
+  `avatar` varchar(255) DEFAULT '/resources/images/default_avatar.png',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -81,6 +86,42 @@ CREATE TABLE `budgets` (
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Goals
+CREATE TABLE `goals` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `target_amount` decimal(15,2) NOT NULL,
+  `deadline` date DEFAULT NULL,
+  `status` enum('active','completed','archived') NOT NULL DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Goal Transactions (liên kết giữa goals và transactions)
+CREATE TABLE `goal_transactions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `goal_id` int(11) NOT NULL,
+  `transaction_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_goal_id` (`goal_id`),
+  KEY `idx_transaction_id` (`transaction_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Bảng lưu cấu hình tỉ lệ ngân sách động cho từng user
+CREATE TABLE `user_budget_settings` (
+  `user_id` int(11) PRIMARY KEY,
+  `needs_percent` int(3) NOT NULL DEFAULT 50,
+  `wants_percent` int(3) NOT NULL DEFAULT 30,
+  `savings_percent` int(3) NOT NULL DEFAULT 20,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT `fk_user_budget_settings_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 3. CONSTRAINTS
 ALTER TABLE `categories`
   ADD CONSTRAINT `fk_categories_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
@@ -93,5 +134,12 @@ ALTER TABLE `transactions`
 ALTER TABLE `budgets`
   ADD CONSTRAINT `fk_budgets_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_budgets_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `goals`
+  ADD CONSTRAINT `fk_goals_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `goal_transactions`
+  ADD CONSTRAINT `fk_goal_transactions_goal` FOREIGN KEY (`goal_id`) REFERENCES `goals` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_goal_transactions_transaction` FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`) ON DELETE CASCADE;
 
 SET FOREIGN_KEY_CHECKS = 1;
