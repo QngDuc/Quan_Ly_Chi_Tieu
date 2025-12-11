@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\User;
+namespace App\Controllers\User;
 
 use App\Core\Controllers;
 use App\Core\Response;

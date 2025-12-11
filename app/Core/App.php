@@ -14,19 +14,20 @@ class App
     public function run()
     {
         $url = $this->parseUrl();
-        $namespace = 'App\\Http\\Controllers';
-        $folderPath = '/Http/Controllers';
+        // Use new location 'app/Controllers' with namespace 'App\Controllers'
+        $preferredNamespace = 'App\\Controllers';
+        $preferredFolder = '/Controllers';
 
         // If no controller is specified, use the default Auth\\Login controller
         if (empty($url[0])) {
-            $namespace = 'App\\Http\\Controllers\\Auth';
-            $folderPath = '/Http/Controllers/Auth';
+            $namespace = $preferredNamespace . '\\Auth';
+            $folderPath = $preferredFolder . '/Auth';
             $this->controller = 'Login';
         } else {
             // Check if this is an admin route
             if ($url[0] === 'admin') {
-                $namespace = 'App\\Http\\Controllers\\Admin';
-                $folderPath = '/Http/Controllers/Admin';
+                $namespace = $preferredNamespace . '\\Admin';
+                $folderPath = $preferredFolder . '/Admin';
                 unset($url[0]);
                 $url = array_values($url);
                 
@@ -39,8 +40,8 @@ class App
                 }
             } elseif ($url[0] === 'auth') {
                 // Auth routes
-                $namespace = 'App\\Http\\Controllers\\Auth';
-                $folderPath = '/Http/Controllers/Auth';
+                $namespace = $preferredNamespace . '\\Auth';
+                $folderPath = $preferredFolder . '/Auth';
                 unset($url[0]);
                 $url = array_values($url);
 
@@ -53,27 +54,51 @@ class App
                 }
             } else {
                 // User routes
-                $namespace = 'App\\Http\\Controllers\\User';
-                $folderPath = '/Http/Controllers/User';
+                $namespace = $preferredNamespace . '\\User';
+                $folderPath = $preferredFolder . '/User';
                 $this->controller = ucfirst($url[0]);
                 unset($url[0]);
             }
         }
 
-        // Require the controller file
-        $controllerFile = APP_PATH . $folderPath . '/' . $this->controller . '.php';
-        if (!file_exists($controllerFile)) {
-            // Fallback to Auth\\Login if controller not found
-            $namespace = 'App\\Http\\Controllers\\Auth';
-            $this->controller = 'Login';
-            $controllerFile = APP_PATH . '/Http/Controllers/Auth/Login.php';
-        }
-        
-        require_once $controllerFile;
+        // Determine controller file under preferred folder
+        $controllerFilePreferred = APP_PATH . $folderPath . '/' . $this->controller . '.php';
 
-        // Instantiate the controller with its full namespace
-        $controllerClass = $namespace . '\\' . $this->controller;
-        $this->controller = new $controllerClass();
+        if (file_exists($controllerFilePreferred)) {
+            require_once $controllerFilePreferred;
+            $controllerClassCandidates = [
+                $preferredNamespace . '\\' . trim(str_replace('/', '\\', substr($folderPath, strlen($preferredFolder) + 1)), '\\') . '\\' . $this->controller,
+                $preferredNamespace . '\\' . $this->controller
+            ];
+        } else {
+            // Fallback to Auth\Login under preferred folder
+            $fallbackFile = APP_PATH . '/Controllers/Auth/Login.php';
+            if (file_exists($fallbackFile)) {
+                require_once $fallbackFile;
+                $controllerClassCandidates = [$preferredNamespace . '\\Auth\\Login'];
+                $this->controller = 'Login';
+            } else {
+                throw new \Exception('Controller file not found: ' . $controllerFilePreferred);
+            }
+        }
+
+        // Instantiate controller: try candidate namespaces until one exists
+        $instantiated = false;
+        foreach ($controllerClassCandidates as $candidate) {
+            if (class_exists($candidate)) {
+                $this->controller = new $candidate();
+                $instantiated = true;
+                break;
+            }
+        }
+        if (!$instantiated) {
+            // As last resort, try the raw controller name (no namespace)
+            if (class_exists($this->controller)) {
+                $this->controller = new $this->controller();
+            } else {
+                throw new \Exception('Controller class not found for ' . $this->controller);
+            }
+        }
 
         if (isset($url[1])) {
             // Check if the method exists in the controller

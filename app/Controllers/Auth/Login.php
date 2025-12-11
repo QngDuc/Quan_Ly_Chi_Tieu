@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\Auth;
+namespace App\Controllers\Auth;
 
 use App\Core\Controllers;
 

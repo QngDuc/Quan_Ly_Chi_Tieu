@@ -21,10 +21,10 @@
         "psr-4": {
             "App\\": "app/",
             "App\\Core\\": "app/Core/",
-            "App\\Http\\Controllers\\": "app/Http/Controllers/",
-            "App\\Http\\Controllers\\User\\": "app/Http/Controllers/User/",
-            "App\\Http\\Controllers\\Admin\\": "app/Http/Controllers/Admin/",
-            "App\\Http\\Controllers\\Auth\\": "app/Http/Controllers/Auth/",
+            "App\\Controllers\\": "app/Controllers/",
+            "App\\Controllers\\User\\": "app/Controllers/User/",
+            "App\\Controllers\\Admin\\": "app/Controllers/Admin/",
+            "App\\Controllers\\Auth\\": "app/Controllers/Auth/",
             "App\\Models\\": "app/Models/",
             "App\\Services\\": "app/Services/",
             "App\\Middleware\\": "app/Middleware/"

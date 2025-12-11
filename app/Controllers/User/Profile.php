@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\User;
+namespace App\Controllers\User;
 
 use App\Core\Controllers;
 use App\Core\Response;
@@ -57,7 +57,7 @@ class Profile extends Controllers
                 // Thất bại có thể do Key không nằm trong Whitelist của Model
                 Response::errorResponse('Cập nhật thất bại: Tên cài đặt không hợp lệ');
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Response::errorResponse('Lỗi server: ' . $e->getMessage(), null, 500);
         }
     }

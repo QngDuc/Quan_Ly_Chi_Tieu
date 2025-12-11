@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\User;
+namespace App\Controllers\User;
 
 use App\Core\Controllers;
 use App\Core\Response;
@@ -94,7 +94,6 @@ class Transactions extends Controllers
         $this->redirect('/dashboard');
     }
 
-    // File: app/Http/Controllers/User/Transactions.php
 
     public function api_add()
     {
