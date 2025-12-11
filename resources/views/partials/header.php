@@ -11,8 +11,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>/shared/style.css" rel="stylesheet">
 
+    <?php // CSRF meta for JS fetch requests ?>
+    <?php echo \App\Middleware\CsrfProtection::getTokenMeta(); ?>
     <script>
-        const BASE_URL = '<?php echo BASE_URL; ?>';
+        window.BASE_URL = '<?php echo BASE_URL; ?>';
     </script>
 
     <?php

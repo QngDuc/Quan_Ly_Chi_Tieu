@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use App\Core\ConnectDB;
@@ -15,10 +16,10 @@ class User
     public function createUser($username, $email, $password, $fullName)
     {
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        
+
         // Luôn gán role là 'user' khi đăng ký mới
         $role = 'user';
-        
+
         $stmt = $this->db->prepare("INSERT INTO users (username, email, password, full_name, role) VALUES (?, ?, ?, ?, ?)");
         if ($stmt->execute([$username, $email, $hashedPassword, $fullName, $role])) {
             return $this->db->lastInsertId();
@@ -64,11 +65,11 @@ class User
         $checkStmt = $this->db->prepare("SELECT is_super_admin FROM users WHERE id = ?");
         $checkStmt->execute([$userId]);
         $user = $checkStmt->fetch(\PDO::FETCH_ASSOC);
-        
+
         if ($user && $user['is_super_admin'] == 1) {
             return false; // Cannot change super admin role
         }
-        
+
         $stmt = $this->db->prepare("UPDATE users SET role = ? WHERE id = ?");
         return $stmt->execute([$role, $userId]);
     }
@@ -126,21 +127,20 @@ class User
      */
     public function updateNotificationSetting($userId, $column, $value)
     {
-        // 1. Whitelist: Chỉ cho phép update đúng 3 cột này để bảo mật (tránh user gửi tên cột linh tinh lên)
+        // Đảm bảo tên này khớp y chang Database của bạn
         $allowedColumns = [
-            'notify_budget_limit', 
-            'notify_goal_reminder', 
+            'notify_budget_limit',
+            'notify_goal_reminder',
             'notify_weekly_summary'
         ];
-        
+
         if (!in_array($column, $allowedColumns)) {
-            return false; // Tên cột không hợp lệ -> Chặn ngay
+            // Thêm log để biết nếu bị chặn ở đây
+            error_log("Security Block: Column '$column' not in whitelist.");
+            return false;
         }
 
-        // 2. Thực hiện Update
-        // Lưu ý: Vì $column đã được kiểm tra trong whitelist ở trên nên việc nối chuỗi vào SQL là an toàn.
         $sql = "UPDATE users SET {$column} = ? WHERE id = ?";
-        
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$value, $userId]);
     }

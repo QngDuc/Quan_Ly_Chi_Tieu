@@ -42,24 +42,23 @@ class Budget
 
         $sql = "
             SELECT 
-                b.*,
-                c.name as category_name,
-                c.color as category_color,
-                c.icon as category_icon,
-                c.type as category_type,
-                COALESCE(SUM(t.amount), 0) as spent,
-                ROUND((COALESCE(SUM(t.amount), 0) / b.amount) * 100, 2) as percentage_used,
-                b.amount - COALESCE(SUM(t.amount), 0) as remaining
+                b.*, 
+                c.name as category_name, 
+                c.color as category_color, 
+                c.icon as category_icon, 
+                c.type as category_type, 
+                COALESCE(SUM(t.amount), 0) as spent, 
+                CASE WHEN b.amount IS NULL OR b.amount = 0 THEN 0 ELSE ROUND((COALESCE(SUM(t.amount),0) / NULLIF(b.amount,0)) * 100, 2) END as percentage_used, 
+                (b.amount - COALESCE(SUM(t.amount), 0)) as remaining 
             FROM budgets b
             INNER JOIN categories c ON b.category_id = c.id
-            LEFT JOIN transactions t ON 
-                t.category_id = b.category_id 
+            LEFT JOIN transactions t ON t.category_id = b.category_id
                 AND t.user_id = b.user_id
                 AND t.type = 'expense'
                 AND t.date BETWEEN ? AND ?
             WHERE b.user_id = ? AND b.is_active = 1
             GROUP BY b.id, c.name, c.color, c.icon, c.type
-            ORDER BY b.created_at DESC
+            ORDER BY b.id DESC
         ";
 
         $stmt = $this->db->prepare($sql);
@@ -99,19 +98,56 @@ class Budget
             (user_id, category_id, amount, period, start_date, end_date, alert_threshold, is_active, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ";
-        
+
         $stmt = $this->db->prepare($sql);
-        $result = $stmt->execute([
-            $data['user_id'],
-            $data['category_id'],
-            $data['amount'],
-            $data['period'],
-            $data['start_date'],
-            $data['end_date'],
-            $data['alert_threshold'],
-            $data['is_active']
-        ]);
-        
+        try {
+            $result = $stmt->execute([
+                $data['user_id'],
+                $data['category_id'],
+                $data['amount'],
+                $data['period'],
+                $data['start_date'],
+                $data['end_date'],
+                $data['alert_threshold'],
+                $data['is_active']
+            ]);
+        } catch (\PDOException $e) {
+            $msg = $e->getMessage();
+            // If DB missing alert_threshold or created_at, retry with a compatible INSERT
+            if (stripos($msg, 'Unknown column') !== false || stripos($msg, 'field list') !== false) {
+                // Try without alert_threshold but with created_at
+                try {
+                    $sql2 = "INSERT INTO budgets (user_id, category_id, amount, period, start_date, end_date, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+                    $stmt2 = $this->db->prepare($sql2);
+                    $result = $stmt2->execute([
+                        $data['user_id'],
+                        $data['category_id'],
+                        $data['amount'],
+                        $data['period'],
+                        $data['start_date'],
+                        $data['end_date'],
+                        $data['is_active']
+                    ]);
+                } catch (\PDOException $e2) {
+                    // Try without created_at (some very old schemas)
+                    $sql3 = "INSERT INTO budgets (user_id, category_id, amount, period, start_date, end_date, alert_threshold, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                    $stmt3 = $this->db->prepare($sql3);
+                    $result = $stmt3->execute([
+                        $data['user_id'],
+                        $data['category_id'],
+                        $data['amount'],
+                        $data['period'],
+                        $data['start_date'],
+                        $data['end_date'],
+                        $data['alert_threshold'],
+                        $data['is_active']
+                    ]);
+                }
+            } else {
+                throw $e; // rethrow unexpected PDO errors
+            }
+        }
+
         return $result ? $this->db->lastInsertId() : false;
     }
 

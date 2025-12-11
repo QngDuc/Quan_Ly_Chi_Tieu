@@ -410,14 +410,26 @@ const BudgetsApp = (function(){
             headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
             body: JSON.stringify(payload)
         })
-        .then(r => r.json())
-        .then(res => {
+        .then(async r => {
+            const text = await r.text();
+            let res;
+            try {
+                res = text ? JSON.parse(text) : { success: false, message: 'Empty response' };
+            } catch(err) {
+                console.error('Invalid JSON response from server:', text);
+                alert('Lỗi: phản hồi không hợp lệ từ server');
+                return;
+            }
+
             if(res.success){
                 bootstrap.Modal.getInstance(document.getElementById('createBudgetModal')).hide();
                 loadBudgets();
             } else {
-                alert(res.message);
+                alert(res.message || 'Lỗi khi tạo ngân sách');
             }
+        }).catch(err => {
+            console.error('submitBudgetForm error', err);
+            alert('Lỗi kết nối tới server');
         });
     }
 

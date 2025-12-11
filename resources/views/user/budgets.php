@@ -102,7 +102,7 @@ $this->partial('header');
                         </div>
                         <h6 class="text-dark fw-bold">Chưa có ngân sách nào</h6>
                         <p class="text-muted small">Hãy tạo ngân sách để bắt đầu theo dõi.</p>
-                        <button onclick="document.getElementById('openCreateBudget').click()" class="btn btn-outline-primary rounded-pill px-4">
+                        <button onclick="(function(){var e=document.getElementById('openCreateBudget'); if(e) e.click();})()" class="btn btn-outline-primary rounded-pill px-4">
                             Tạo ngay
                         </button>
                     </div>
@@ -144,7 +144,7 @@ $this->partial('header');
                         
                         <div class="mb-4">
                             <label class="form-label fw-bold small text-muted">DANH MỤC</label>
-                            <div class="input-group input-group-lg cursor-pointer" onclick="document.getElementById('openCategoryChooser').click()">
+                            <div class="input-group input-group-lg cursor-pointer" onclick="(function(){var e=document.getElementById('openCategoryChooser'); if(e) e.click();})()">
                                 <input type="text" id="budget_category_picker" class="form-control bg-light border-0 rounded-3 ps-3" placeholder="Chọn danh mục..." readonly style="cursor: pointer;">
                                 <input type="hidden" id="budget_category" name="category_id">
                                 <span class="input-group-text bg-light border-0 text-muted rounded-3 ms-1"><i class="fas fa-chevron-right"></i></span>

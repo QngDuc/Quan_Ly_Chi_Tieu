@@ -1,7 +1,12 @@
 // === PROFILE PAGE JS ===
 
+// Helper to read CSRF token from meta or hidden input
+function getCsrfToken() {
+    return document.querySelector('input[name="csrf_token"]')?.value || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+}
+
 document.addEventListener('DOMContentLoaded', function () {
-    const BASE_URL = window.location.origin + '/Quan_Ly_Chi_Tieu';
+    const BASE_URL = (typeof window !== 'undefined' && typeof window.BASE_URL !== 'undefined' && window.BASE_URL) ? window.BASE_URL : (window.location.origin + '/Quan_Ly_Chi_Tieu');
     // Handle avatar upload
     const avatarInput = document.getElementById('avatarInput');
     if (avatarInput) {
@@ -44,10 +49,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const avatarDisplay = document.getElementById('avatarDisplay');
             avatarDisplay.innerHTML = `<img src="${savedAvatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">`;
         }
-        // --- XỬ LÝ NÚT GẠT THÔNG BÁO (NOTIFICATION TOGGLES) ---
-        const notificationToggles = document.querySelectorAll('.notification-toggle');
+    // --- XỬ LÝ NÚT GẠT THÔNG BÁO (NOTIFICATION TOGGLES) ---
+    const notificationToggles = document.querySelectorAll('.notification-toggle');
 
-        notificationToggles.forEach(toggle => {
+    if (notificationToggles.length === 0) {
+        console.debug('profile.js: No notification toggles found');
+    }
+
+    notificationToggles.forEach(toggle => {
+        console.debug('profile.js: attaching listener to', toggle.dataset.key);
             toggle.addEventListener('change', function () {
                 // 1. Lấy thông tin từ nút vừa gạt
                 const key = this.dataset.key; // Tên cột (vd: notify_budget_limit)
@@ -57,8 +67,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Thử lấy từ thẻ input hidden trước, nếu không có thì lấy từ thẻ meta
                 const csrfToken = document.querySelector('input[name="csrf_token"]')?.value ||
                     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                console.debug('profile.js: csrf token', csrfToken);
 
                 // 3. Gửi Request xuống Server (API Controller Bước 3)
+                console.debug('profile.js: sending preference to', `${BASE_URL}/profile/api_update_preference`, { key, value });
                 fetch(`${BASE_URL}/profile/api_update_preference`, {
                     method: 'POST',
                     headers: {
@@ -112,7 +124,8 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(`${BASE_URL}/profile/api_update`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(formData)
             })
@@ -156,7 +169,8 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(`${BASE_URL}/profile/api_change_password`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(formData)
             })
@@ -210,7 +224,8 @@ function clearAllData() {
             fetch(`${BASE_URL}/profile/api_clear_data`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 }
             })
                 .then(response => response.json())

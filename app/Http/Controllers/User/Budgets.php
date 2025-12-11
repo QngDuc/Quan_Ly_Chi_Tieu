@@ -12,16 +12,18 @@ class Budgets extends Controllers
     protected $db;
     protected $budgetModel;
     protected $categoryModel;
+    protected $transactionModel;
 
     public function __construct()
     {
         parent::__construct();
         // Kiểm tra quyền user (ngăn admin truy cập)
-        AuthCheck::requireUser();
         $this->db = (new \App\Core\ConnectDB())->getConnection();
         $this->budgetModel = new \App\Models\Budget();
         $this->categoryModel = new \App\Models\Category();
+        $this->transactionModel = new \App\Models\Transaction();
     }
+    
 
     /**
      * Display budgets index page (Money Lover style)
@@ -235,6 +237,35 @@ class Budgets extends Controllers
                 'alert_threshold' => $input['alert_threshold'] ?? 80,
                 'is_active' => 1
             ];
+
+            // Server-side check: total budgets for the period must not exceed total income for that period
+            try {
+                $summary = $this->budgetModel->getSummary($userId, $period);
+                $existingTotal = isset($summary['total_budget_amount']) ? floatval($summary['total_budget_amount']) : 0.0;
+
+                $totals = $this->transactionModel->getTotalsForPeriod($userId, $startDate, $endDate);
+                $totalIncome = isset($totals['income']) ? floatval($totals['income']) : 0.0;
+
+                $attemptedTotal = $existingTotal + $data['amount'];
+
+                if ($totalIncome > 0 && $attemptedTotal > $totalIncome) {
+                    Response::errorResponse('Tổng giới hạn ngân sách trong kỳ không được vượt tổng thu nhập', [
+                        'total_income' => $totalIncome,
+                        'existing_budgets_total' => $existingTotal,
+                        'attempted_total' => $attemptedTotal
+                    ], 400);
+                    return;
+                }
+            } catch (\Exception $e) {
+                // If summary/totals calculation fails, log and continue — do not block creation
+                try {
+                    $logDir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'logs';
+                    if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
+                    $msg = '[' . date('Y-m-d H:i:s') . '] budget_limit_check error: ' . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n\n";
+                    @file_put_contents($logDir . DIRECTORY_SEPARATOR . 'budgets_error.log', $msg, FILE_APPEND);
+                } catch (\Exception $ex) {
+                }
+            }
 
             $budgetId = $this->budgetModel->create($data);
             

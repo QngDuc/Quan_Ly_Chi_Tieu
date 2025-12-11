@@ -1,7 +1,7 @@
 -- ============================================
 -- SmartSpending - Database Schema
 -- Version: 6.1.0 (Hierarchy Structure)
--- Date: December 7, 2025
+-- Date: December 12, 2025
 -- ============================================
 
 CREATE DATABASE IF NOT EXISTS `quan_ly_chi_tieu` 
@@ -37,7 +37,7 @@ CREATE TABLE `users` (
   `notify_budget_limit` tinyint(1) NOT NULL DEFAULT 1,
   `notify_goal_reminder` tinyint(1) NOT NULL DEFAULT 1,
   `notify_weekly_summary` tinyint(1) NOT NULL DEFAULT 1,
-  `avatar` varchar(255) DEFAULT '/resources/images/default_avatar.png',
+  `avatar` varchar(255) DEFAULT 'resources/images/default_avatar.png',
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -73,7 +73,8 @@ CREATE TABLE `transactions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Budgets
-CREATE TABLE `budgets` (
+-- 2. Tạo bảng Budgets (Ngân sách)
+CREATE TABLE IF NOT EXISTS `budgets` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
@@ -81,11 +82,13 @@ CREATE TABLE `budgets` (
   `period` enum('weekly','monthly','yearly') NOT NULL DEFAULT 'monthly',
   `start_date` date NOT NULL,
   `end_date` date NOT NULL,
+  `alert_threshold` int(11) DEFAULT 80,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- Goals
 CREATE TABLE `goals` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
