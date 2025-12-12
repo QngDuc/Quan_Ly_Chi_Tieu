@@ -75,7 +75,11 @@ const SmartSpending = {
     },
 
     // Custom confirm dialog (FinTrack style)
-    showConfirm: (title, message, onConfirm) => {
+    // Usage: SmartSpending.showConfirm(title, message, onConfirm, { cancelText, confirmText })
+    showConfirm: (title, message, onConfirm, options = {}) => {
+        const cancelText = options.cancelText || 'Hủy';
+        const confirmText = options.confirmText || 'Xóa';
+
         const overlay = document.createElement('div');
         overlay.className = 'confirm-overlay';
         overlay.innerHTML = `
@@ -83,8 +87,8 @@ const SmartSpending = {
                 <div class="confirm-title">${title}</div>
                 <div class="confirm-message">${message}</div>
                 <div class="confirm-actions">
-                    <button class="confirm-btn confirm-btn-cancel">Cancel</button>
-                    <button class="confirm-btn confirm-btn-delete">Delete</button>
+                    <button class="confirm-btn confirm-btn-cancel">${cancelText}</button>
+                    <button class="confirm-btn confirm-btn-delete">${confirmText}</button>
                 </div>
             </div>
         `;
@@ -102,7 +106,7 @@ const SmartSpending = {
         cancelBtn.addEventListener('click', closeDialog);
         deleteBtn.addEventListener('click', () => {
             closeDialog();
-            onConfirm();
+            if (typeof onConfirm === 'function') onConfirm();
         });
 
         // Close on backdrop click
@@ -195,3 +199,78 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Export for use in other files
 window.SmartSpending = SmartSpending;
+
+// Avatar upload helper: detects profile avatar form and handles AJAX upload
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Find form by action contains 'profile/api_upload_avatar'
+        var forms = document.querySelectorAll('form');
+        var avatarForm = null;
+        for (var i = 0; i < forms.length; i++) {
+            var f = forms[i];
+            var action = f.getAttribute('action') || '';
+            if (action.indexOf('/profile/api_upload_avatar') !== -1 || action.indexOf('profile/api_upload_avatar') !== -1) {
+                avatarForm = f;
+                break;
+            }
+        }
+
+        // Fallback: element with data-avatar-upload
+        if (!avatarForm) avatarForm = document.querySelector('[data-avatar-upload]');
+
+        if (!avatarForm) return; // no profile upload form on page
+
+        var fileInput = avatarForm.querySelector('input[type=file][name=avatar]');
+        if (!fileInput) return;
+
+        avatarForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            var file = fileInput.files[0];
+            if (!file) {
+                SmartSpending.showToast('Vui lòng chọn file ảnh.', 'error');
+                return;
+            }
+
+            var fd = new FormData();
+            fd.append('avatar', file);
+
+            // Try to attach CSRF token if present as meta tag or hidden input
+            var token = document.querySelector('meta[name=csrf-token]');
+            if (token) fd.append('csrf_token', token.getAttribute('content'));
+            var hiddenToken = avatarForm.querySelector('input[name=csrf_token]');
+            if (hiddenToken) fd.append('csrf_token', hiddenToken.value);
+
+            SmartSpending.showLoader();
+
+            fetch(avatarForm.action || (location.pathname + '/profile/api_upload_avatar'), {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin'
+            }).then(function(res) {
+                SmartSpending.hideLoader();
+                return res.json();
+            }).then(function(json) {
+                if (json && json.status === 'success') {
+                    var newUrl = json.data && json.data.avatar ? json.data.avatar : null;
+                    if (newUrl) {
+                        // Update avatar images on page (img.avatar)
+                        document.querySelectorAll('img.avatar').forEach(function(img) {
+                            img.src = newUrl + '?t=' + Date.now();
+                        });
+                    }
+                    SmartSpending.showToast('Cập nhật avatar thành công', 'success');
+                } else {
+                    var msg = (json && json.message) ? json.message : 'Không thể tải lên avatar';
+                    SmartSpending.showToast(msg, 'error');
+                }
+            }).catch(function(err) {
+                SmartSpending.hideLoader();
+                SmartSpending.showToast('Lỗi khi tải lên: ' + (err.message || err), 'error');
+            });
+        });
+    } catch (e) {
+        // swallow errors silently to avoid breaking other pages
+        console.error('Avatar upload init error', e);
+    }
+});

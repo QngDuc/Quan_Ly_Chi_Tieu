@@ -116,44 +116,53 @@ class Transactions extends Controllers
             }
 
             $validData = $validator->getData();
-            $isConfirmed = isset($data['confirmed']) && $data['confirmed'] === true; // Cờ xác nhận từ Modal
+            // Cờ xác nhận từ Modal (nếu người dùng đã bấm "Tiếp tục" ở lần cảnh báo trước)
+            $isConfirmed = isset($data['confirmed']) && $data['confirmed'] === true;
 
-            // === LOGIC KIỂM TRA MỚI ===
+            // === [NÂNG CẤP] LOGIC KIỂM TRA NGÂN SÁCH ===
             if (($validData['type'] ?? 'expense') === 'expense') {
 
-                // 1. HARD CHECK: Kiểm tra tổng số dư khả dụng
+                // 1. HARD CHECK: Kiểm tra tổng số dư khả dụng (Bắt buộc - để tránh âm ví)
                 $currentBalance = $this->transactionModel->getTotalBalance($userId);
                 if ($currentBalance < $validData['amount']) {
                     Response::errorResponse('Giao dịch thất bại: Số dư tài khoản hiện tại (' . number_format($currentBalance) . 'đ) không đủ để thanh toán khoản này.');
                     return;
                 }
 
-                // 2. SOFT CHECK: Kiểm tra ngân sách (Nếu chưa có xác nhận từ Modal)
-                if (!$isConfirmed) {
-                    $budgetModel = $this->model('Budget');
-                    $budgets = $budgetModel->getBudgetsWithSpending($userId, 'monthly');
+                // 2. SOFT CHECK: Kiểm tra ngân sách & Cấu hình người dùng
+                // Load User Model để lấy cài đặt thông báo
+                $userModel = $this->model('User');
+                $currentUser = $userModel->getUserById($userId);
 
-                    foreach ($budgets as $budget) {
-                        if ($budget['category_id'] == $validData['category_id']) {
-                            $spentPositive = abs($budget['spent']);
-                            $newTotal = $spentPositive + $validData['amount'];
+                // [QUAN TRỌNG] Chỉ chạy kiểm tra ngân sách nếu user đang BẬT tùy chọn này
+                if ($currentUser && isset($currentUser['notify_budget_limit']) && $currentUser['notify_budget_limit'] == 1) {
 
-                            // Nếu tổng chi sau khi thêm giao dịch này vượt quá giới hạn
-                            if ($newTotal > $budget['amount']) {
-                                // Trả về mã đặc biệt để Frontend hiện Modal
-                                Response::successResponse('Cảnh báo vượt ngân sách', [
-                                    'requires_confirmation' => true,
-                                    'message' => "Hạn mức '" . $budget['category_name'] . "' chỉ còn " . number_format($budget['remaining']) . "đ. Giao dịch này sẽ khiến bạn bị âm ngân sách mục này. \n\nBạn có muốn dùng số dư dư thừa từ các khoản khác để tiếp tục thanh toán?"
-                                ]);
-                                return; // Dừng lại, đợi user confirm
+                    if (!$isConfirmed) {
+                        $budgetModel = $this->model('Budget');
+                        $budgets = $budgetModel->getBudgetsWithSpending($userId, 'monthly');
+
+                        foreach ($budgets as $budget) {
+                            if ($budget['category_id'] == $validData['category_id']) {
+                                $spentPositive = abs($budget['spent']);
+                                $newTotal = $spentPositive + $validData['amount'];
+
+                                // Nếu chi tiêu vượt quá hạn mức ngân sách
+                                if ($newTotal > $budget['amount']) {
+                                    // Trả về mã đặc biệt để Frontend hiện Modal cảnh báo
+                                    Response::successResponse('Cảnh báo vượt ngân sách', [
+                                        'requires_confirmation' => true,
+                                        'message' => "Hạn mức '" . $budget['category_name'] . "' chỉ còn " . number_format($budget['remaining']) . "đ. Giao dịch này sẽ khiến bạn bị âm ngân sách mục này. \n\nBạn có muốn dùng số dư dư thừa từ các khoản khác để tiếp tục thanh toán?"
+                                    ]);
+                                    return; // Dừng lại, chờ xác nhận
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
                 }
             }
 
-            // 3. Nếu mọi thứ Ok (hoặc đã confirm), tiến hành lưu
+            // 3. LƯU GIAO DỊCH (Nếu các kiểm tra trên đều qua hoặc đã được confirm hoặc user tắt thông báo)
             $result = $this->transactionModel->createTransaction(
                 $userId,
                 $validData['category_id'],
@@ -163,25 +172,21 @@ class Transactions extends Controllers
                 $validData['description']
             );
 
-            // Nếu là giao dịch 'Thu nợ' hoặc 'Trả nợ', cập nhật ngân sách 'Cho vay'
+            // Logic phụ: Cập nhật ngân sách 'Cho vay' nếu là giao dịch Thu nợ/Trả nợ
             $debtCategoryIds = [44, 42]; // id Thu nợ, Trả nợ
             $loanCategoryId = 13; // id Cho vay
             if (in_array($validData['category_id'], $debtCategoryIds)) {
-                // Tìm ngân sách 'Cho vay' của user trong kỳ hiện tại
                 $budgetModel = $this->model('Budget');
                 $budgets = $budgetModel->getBudgetsWithSpending($userId, 'monthly');
                 foreach ($budgets as $budget) {
                     if ($budget['category_id'] == $loanCategoryId) {
-                        // Giảm số tiền đã chi (spent) của ngân sách 'Cho vay'
-                        // Thực tế, spent tính từ các transaction, nên cần tạo transaction âm hoặc cập nhật lại bảng nếu có logic riêng
-                        // Ở đây, tạo transaction âm cho mục 'Cho vay' để trừ đi số tiền vừa thu nợ
                         $this->transactionModel->createTransaction(
                             $userId,
                             $loanCategoryId,
                             -abs($validData['amount']),
                             'expense',
                             $validData['date'],
-                            'Thu nợ tự động khi ghi nhận giao dịch Thu nợ/Trả nợ'
+                            'Thu nợ tự động (Điều chỉnh ngân sách)'
                         );
                         break;
                     }

@@ -47,9 +47,10 @@ class Budget
                 c.color as category_color, 
                 c.icon as category_icon, 
                 c.type as category_type, 
-                COALESCE(SUM(t.amount), 0) as spent, 
-                CASE WHEN b.amount IS NULL OR b.amount = 0 THEN 0 ELSE ROUND((COALESCE(SUM(t.amount),0) / NULLIF(b.amount,0)) * 100, 2) END as percentage_used, 
-                (b.amount - COALESCE(SUM(t.amount), 0)) as remaining 
+                COALESCE(c.group_type, 'needs') as category_group,
+                COALESCE(SUM(ABS(t.amount)), 0) as spent, 
+                CASE WHEN b.amount IS NULL OR b.amount = 0 THEN 0 ELSE ROUND((COALESCE(SUM(ABS(t.amount)),0) / NULLIF(b.amount,0)) * 100, 2) END as percentage_used, 
+                (b.amount - COALESCE(SUM(ABS(t.amount)), 0)) as remaining 
             FROM budgets b
             INNER JOIN categories c ON b.category_id = c.id
             LEFT JOIN transactions t ON t.category_id = b.category_id
@@ -57,7 +58,7 @@ class Budget
                 AND t.type = 'expense'
                 AND t.date BETWEEN ? AND ?
             WHERE b.user_id = ? AND b.is_active = 1
-            GROUP BY b.id, c.name, c.color, c.icon, c.type
+            GROUP BY b.id, c.name, c.color, c.icon, c.type, c.group_type
             ORDER BY b.id DESC
         ";
 
@@ -220,7 +221,7 @@ class Budget
             SELECT 
                 COUNT(*) as total_budgets,
                 SUM(b.amount) as total_budget_amount,
-                COALESCE(SUM(t.amount), 0) as total_spent
+                COALESCE(SUM(ABS(t.amount)), 0) as total_spent
             FROM budgets b
             LEFT JOIN transactions t ON t.category_id = b.category_id
                 AND t.user_id = b.user_id
@@ -265,8 +266,8 @@ class Budget
             SELECT 
                 b.*,
                 c.name as category_name,
-                COALESCE(SUM(t.amount), 0) as spent,
-                ROUND((COALESCE(SUM(t.amount), 0) / b.amount) * 100, 2) as percentage_used
+                COALESCE(SUM(ABS(t.amount)), 0) as spent,
+                ROUND((COALESCE(SUM(ABS(t.amount)), 0) / b.amount) * 100, 2) as percentage_used
             FROM budgets b
             INNER JOIN categories c ON b.category_id = c.id
             LEFT JOIN transactions t ON 
@@ -315,7 +316,7 @@ class Budget
 
             // Sum spent in that month across expense transactions
             $sqlSpent = "
-                SELECT COALESCE(SUM(t.amount),0) as total_spent
+                SELECT COALESCE(SUM(ABS(t.amount)),0) as total_spent
                 FROM transactions t
                 WHERE t.user_id = ? AND t.type = 'expense' AND t.date BETWEEN ? AND ?
             ";
@@ -330,5 +331,46 @@ class Budget
         }
 
         return $results;
+    }
+/**
+     * Lấy cài đặt tỷ lệ ngân sách của user
+     */
+    public function getUserSmartSettings($userId)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM user_budget_settings WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Nếu chưa có, tạo mặc định 50/30/20
+        if (!$result) {
+            $this->initUserSmartSettings($userId);
+            return ['needs_percent' => 50, 'wants_percent' => 30, 'savings_percent' => 20];
+        }
+        return $result;
+    }
+
+    /**
+     * Khởi tạo cài đặt mặc định
+     */
+    public function initUserSmartSettings($userId)
+    {
+        $stmt = $this->db->prepare("INSERT IGNORE INTO user_budget_settings (user_id, needs_percent, wants_percent, savings_percent) VALUES (?, 50, 30, 20)");
+        return $stmt->execute([$userId]);
+    }
+
+    /**
+     * Cập nhật tỷ lệ
+     */
+    public function updateUserSmartSettings($userId, $needs, $wants, $savings)
+    {
+        // Đảm bảo tổng = 100 (đã validate ở controller, nhưng check lại cho chắc)
+        if ($needs + $wants + $savings != 100) return false;
+
+        // Kiểm tra xem đã có record chưa, nếu chưa thì tạo
+        $this->getUserSmartSettings($userId);
+
+        $sql = "UPDATE user_budget_settings SET needs_percent = ?, wants_percent = ?, savings_percent = ? WHERE user_id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$needs, $wants, $savings, $userId]);
     }
 }

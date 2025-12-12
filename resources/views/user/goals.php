@@ -234,7 +234,4 @@
     </div>
 </div>
 
-<!-- Goals JavaScript -->
-<script src="<?php echo BASE_URL; ?>/js/goals.js"></script>
-
 <?php $this->partial('footer'); ?>

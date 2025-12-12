@@ -17,6 +17,9 @@ class Dashboard extends Controllers
         
         // Dependency Injection (Manual)
         $transactionModel = $this->model('Transaction');
+        if (!$transactionModel) {
+            throw new \RuntimeException("Transaction model could not be loaded.");
+        }
         $this->dashboardService = new DashboardService($transactionModel);
     }
 

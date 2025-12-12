@@ -198,6 +198,71 @@ class Profile extends Controllers
         }
     }
 
+    /**
+     * API: Upload user avatar
+     * POST /profile/api_upload_avatar
+     * Accepts multipart/form-data with field 'avatar'
+     */
+    public function api_upload_avatar()
+    {
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
+        }
+
+        try {
+            CsrfProtection::verify();
+
+            if (empty($_FILES['avatar']) || $_FILES['avatar']['error'] !== UPLOAD_ERR_OK) {
+                Response::errorResponse('Không có file avatar hoặc tải lên thất bại', null, 400);
+                return;
+            }
+
+            $file = $_FILES['avatar'];
+            $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+            if (!in_array($file['type'], $allowed)) {
+                Response::errorResponse('Định dạng file không được hỗ trợ', null, 400);
+                return;
+            }
+
+            $maxSize = 2 * 1024 * 1024; // 2MB
+            if ($file['size'] > $maxSize) {
+                Response::errorResponse('Kích thước file quá lớn (tối đa 2MB)', null, 400);
+                return;
+            }
+
+            $userId = $this->getCurrentUserId();
+
+            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $safeExt = preg_replace('/[^a-zA-Z0-9]/', '', $ext);
+            $filename = 'avatar_' . $userId . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $safeExt;
+
+            $uploadDir = PUBLIC_PATH . '/images/avatars';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $target = $uploadDir . '/' . $filename;
+            if (!move_uploaded_file($file['tmp_name'], $target)) {
+                Response::errorResponse('Lưu file thất bại', null, 500);
+                return;
+            }
+
+            // Build public URL for avatar
+            $avatarUrl = rtrim(BASE_URL, '\/') . '/images/avatars/' . $filename;
+
+            $userModel = $this->model('User');
+            $ok = $userModel->updateAvatar($userId, $avatarUrl);
+            if ($ok) {
+                Response::successResponse('Cập nhật avatar thành công', ['avatar' => $avatarUrl]);
+            } else {
+                Response::errorResponse('Không thể cập nhật avatar vào cơ sở dữ liệu', null, 500);
+            }
+        } catch (Exception $e) {
+            Response::errorResponse('Lỗi khi tải avatar: ' . $e->getMessage(), null, 500);
+        }
+    }
+
     public function export_data()
     {
         try {

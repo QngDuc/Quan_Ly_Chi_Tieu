@@ -134,10 +134,10 @@ class Transaction
         $finalAmount = FinancialUtils::normalizeAmount($amount, $category['type'] ?? 'expense');
 
         $stmt = $this->db->prepare(
-            "INSERT INTO transactions (user_id, category_id, amount, date, description) VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO transactions (user_id, category_id, amount, date, description, type) VALUES (?, ?, ?, ?, ?, ?)"
         );
         
-        return $stmt->execute([$userId, $categoryId, $finalAmount, $date, $description]);
+        return $stmt->execute([$userId, $categoryId, $finalAmount, $date, $description, $type]);
     }
 
     public function getAllByUser($userId, $filters = [])
@@ -192,11 +192,11 @@ class Transaction
         $finalAmount = FinancialUtils::normalizeAmount($amount, $category['type'] ?? 'expense');
         
         $sql = "UPDATE transactions 
-                SET category_id = ?, amount = ?, description = ?, date = ?
-                WHERE id = ? AND user_id = ?";
+            SET category_id = ?, amount = ?, description = ?, date = ?, type = ?
+            WHERE id = ? AND user_id = ?";
         
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$categoryId, $finalAmount, $description, $date, $id, $userId]);
+        return $stmt->execute([$categoryId, $finalAmount, $description, $date, $type, $id, $userId]);
     }
 
     public function getMonthTotals($userId, $startDate, $endDate)
@@ -261,4 +261,36 @@ class Transaction
         $stmt->execute([$userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Lấy tổng chi tiêu phân theo nhóm (Needs/Wants/Savings) trong khoảng thời gian
+     */
+    public function getSpendingByGroup($userId, $startDate, $endDate)
+    {
+        $sql = "
+            SELECT 
+                c.group_type,
+                SUM(ABS(t.amount)) as total_spent
+            FROM transactions t
+            JOIN categories c ON t.category_id = c.id
+            WHERE t.user_id = ? 
+            AND t.type = 'expense'
+            AND t.date BETWEEN ? AND ?
+            GROUP BY c.group_type
+        ";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$userId, $startDate, $endDate]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Chuẩn hóa format trả về: ['needs' => 100, 'wants' => 50...]
+        $result = ['needs' => 0, 'wants' => 0, 'savings' => 0];
+        foreach ($rows as $row) {
+            if (isset($result[$row['group_type']])) {
+                $result[$row['group_type']] = (float)$row['total_spent'];
+            }
+        }
+        return $result;
+    }
+    
 }

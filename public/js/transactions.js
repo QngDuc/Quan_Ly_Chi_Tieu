@@ -272,17 +272,23 @@ document.addEventListener('DOMContentLoaded', function () {
      * Attach event listeners to transaction buttons
      */
     function attachTransactionListeners() {
-        // Handle delete transaction
-        document.querySelectorAll('.btn-delete-transaction').forEach(btn => {
-            btn.addEventListener('click', function (e) {
+        const tbody = document.querySelector('.transactions-table tbody');
+        if (!tbody) return;
+
+        // Avoid attaching multiple delegation handlers
+        if (tbody.dataset.listenerAttached === '1') return;
+        tbody.dataset.listenerAttached = '1';
+
+        tbody.addEventListener('click', function (e) {
+            const deleteBtn = e.target.closest('.btn-delete-transaction');
+            if (deleteBtn) {
                 e.preventDefault();
-                const transactionId = this.dataset.id;
+                const transactionId = deleteBtn.dataset.id;
 
                 SmartSpending.showConfirm(
                     'Xóa Giao Dịch?',
                     'Bạn có chắc chắn muốn xóa giao dịch này? Hành động này không thể hoàn tác.',
                     () => {
-                        // Get CSRF token
                         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
                         (async () => {
@@ -296,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 const text = await response.text();
                                 let json = null;
-                                try { json = text ? JSON.parse(text) : null; } catch (e) { json = null; }
+                                try { json = text ? JSON.parse(text) : null; } catch (err) { json = null; }
                                 const respData = json || { success: response.ok, message: text };
 
                                 if (respData.success === true || respData.status === 'success' || response.ok) {
@@ -312,33 +318,40 @@ document.addEventListener('DOMContentLoaded', function () {
                         })();
                     }
                 );
-            });
-        });
 
-        // Handle edit transaction button click
-        document.querySelectorAll('.btn-edit-transaction').forEach(btn => {
-            btn.addEventListener('click', function () {
+                return;
+            }
+
+            const editBtn = e.target.closest('.btn-edit-transaction');
+            if (editBtn) {
                 const editForm = document.getElementById('editTransactionForm');
                 if (!editForm) return;
 
                 const amountInput = document.getElementById('edit_amount');
-                const rawAmount = this.dataset.amount;
+                const rawAmount = editBtn.dataset.amount;
 
-                document.getElementById('edit_transaction_id').value = this.dataset.id;
+                document.getElementById('edit_transaction_id').value = editBtn.dataset.id;
 
                 // Set amount and trigger input event to format it
-                amountInput.value = rawAmount;
-                amountInput.dataset.numericValue = rawAmount;
-                amountInput.dispatchEvent(new Event('input'));
+                if (amountInput) {
+                    amountInput.value = rawAmount;
+                    amountInput.dataset.numericValue = rawAmount;
+                    amountInput.dispatchEvent(new Event('input'));
+                }
 
-                document.getElementById('edit_type').value = this.dataset.type;
-                document.getElementById('edit_date').value = this.dataset.date;
-                document.getElementById('edit_description').value = this.dataset.description;
+                const editTypeEl = document.getElementById('edit_type');
+                const editDateEl = document.getElementById('edit_date');
+                const editDescEl = document.getElementById('edit_description');
+                const editCategoryEl = document.getElementById('edit_category_id');
+
+                if (editTypeEl) editTypeEl.value = editBtn.dataset.type;
+                if (editDateEl) editDateEl.value = editBtn.dataset.date;
+                if (editDescEl) editDescEl.value = editBtn.dataset.description;
 
                 // Set category and trigger type change to filter categories
-                document.getElementById('edit_type').dispatchEvent(new Event('change'));
-                document.getElementById('edit_category_id').value = this.dataset.category;
-            });
+                if (editTypeEl) editTypeEl.dispatchEvent(new Event('change'));
+                if (editCategoryEl) editCategoryEl.value = editBtn.dataset.category;
+            }
         });
     }
 
@@ -348,11 +361,60 @@ document.addEventListener('DOMContentLoaded', function () {
     // Biến tạm để lưu dữ liệu đang nhập dở khi gặp cảnh báo
     let pendingTransactionData = null;
 
+    // Ensure budget warning modal exists on page (create if missing)
+    function ensureBudgetWarningModalExists() {
+        if (document.getElementById('budgetWarningModal')) return;
+        const tpl = `
+        <div class="modal fade" id="budgetWarningModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-warning bg-opacity-10 border-bottom-0">
+                        <h5 class="modal-title text-warning fw-bold">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Cảnh báo vượt ngân sách
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body py-4">
+                        <p id="budgetWarningMessage" class="mb-0 text-dark"></p>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="button" class="btn btn-warning text-dark fw-bold px-4" id="confirmOverBudgetBtn">Tiếp tục thanh toán</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = tpl;
+        document.body.appendChild(wrapper.firstElementChild);
+
+        // Attach click handler for confirm button (ensure it submits pending data)
+        const confirmBtnNew = document.getElementById('confirmOverBudgetBtn');
+        if (confirmBtnNew) {
+            confirmBtnNew.addEventListener('click', function () {
+                if (pendingTransactionData) {
+                    submitTransaction(pendingTransactionData, true);
+                }
+            });
+        }
+    }
+
     // Xử lý sự kiện Submit Form
     const addTransactionForm = document.getElementById('addTransactionForm');
     if (addTransactionForm) {
         addTransactionForm.addEventListener('submit', function (e) {
             e.preventDefault();
+
+            // Prevent duplicate submits
+            if (this.dataset.sending === '1') {
+                console.warn('Submit prevented: already sending');
+                return;
+            }
+            this.dataset.sending = '1';
+
+            // Disable submit button immediately
+            const immediateSubmitBtn = this.querySelector('button[type=submit]');
+            if (immediateSubmitBtn) immediateSubmitBtn.disabled = true;
 
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
@@ -370,7 +432,11 @@ document.addEventListener('DOMContentLoaded', function () {
             data.amount = numericAmount;
 
             // Gọi hàm gửi dữ liệu (lần 1 - chưa confirm)
-            submitTransaction(data, false);
+            submitTransaction(data, false).finally(() => {
+                // clear sending flag in case submitTransaction didn't (safety)
+                try { delete addTransactionForm.dataset.sending; } catch(e){}
+                if (immediateSubmitBtn) immediateSubmitBtn.disabled = false;
+            });
         });
     }
 
@@ -393,9 +459,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify(data)
             });
 
-            const text = await response.text();
-            let respData = null;
-            try { respData = JSON.parse(text); } catch (e) { }
+                // Disable submit button to prevent duplicate requests (redundant safety)
+                const submitBtn = document.querySelector('#addTransactionForm button[type=submit]');
+                if (submitBtn) submitBtn.disabled = true;
+
+                const text = await response.text();
+                console.log('transactions/api_add status:', response.status, 'body:', text);
+                let respData = null;
+                try { respData = text ? JSON.parse(text) : null; } catch (e) { respData = null; }
 
             // --- XỬ LÝ LOGIC MỚI ---
 
@@ -405,13 +476,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Lưu lại data để dùng khi bấm nút "Tiếp tục"
                     pendingTransactionData = data;
 
+                    // Ensure modal exists (budgets page creates it, other pages may not)
+                    ensureBudgetWarningModalExists();
+
                     // Hiển thị Modal Cảnh báo
-                    document.getElementById('budgetWarningMessage').innerText = respData.data.message;
+                    const msgEl = document.getElementById('budgetWarningMessage');
+                    if (msgEl) msgEl.innerText = respData.data.message;
                     const warningModal = new bootstrap.Modal(document.getElementById('budgetWarningModal'));
                     warningModal.show();
 
                 } else {
                     // Trường hợp 2: Thành công hoàn toàn
+                    // Clear any pending data (user confirmed)
+                    pendingTransactionData = null;
+
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addTransactionModal'));
                     if (modal) modal.hide();
 
@@ -425,9 +503,26 @@ document.addEventListener('DOMContentLoaded', function () {
                     setTimeout(() => loadTransactions(false), 500);
                 }
             } else {
-                // Trường hợp 3: Lỗi (Ví dụ: Không đủ số dư tổng)
-                SmartSpending.showToast(respData?.message || 'Có lỗi xảy ra', 'error');
+                // Trường hợp 3: Lỗi (Ví dụ: Không đủ số dư tổng hoặc validation)
+                let errMsg = respData?.message || 'Có lỗi xảy ra';
+                // If server returned validation errors in data, format them
+                if (respData && respData.data && typeof respData.data === 'object') {
+                    const details = respData.data;
+                    if (!Array.isArray(details)) {
+                        const parts = [];
+                        for (const k in details) {
+                            if (details.hasOwnProperty(k)) parts.push(k + ': ' + details[k]);
+                        }
+                        if (parts.length) errMsg += ' - ' + parts.join('; ');
+                    }
+                }
+                console.warn('Transaction add failed:', response.status, respData);
+                SmartSpending.showToast(errMsg, 'error');
             }
+
+            // Re-enable submit button
+            if (submitBtn) submitBtn.disabled = false;
+            try { delete addTransactionForm.dataset.sending; } catch(e){}
 
         } catch (error) {
             console.error('Error:', error);

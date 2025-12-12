@@ -274,6 +274,5 @@ $this->partial('header');
     // Pass PHP variables to JavaScript
     window.BASE_URL = "<?php echo BASE_URL; ?>";
 </script>
-<script src="<?php echo BASE_URL; ?>/js/transactions.js"></script>
 
 <?php $this->partial('footer'); ?>

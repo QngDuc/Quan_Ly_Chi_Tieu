@@ -100,6 +100,7 @@ class Category
             $userId,
             $data['name'],
             $data['type'],
+            $data['group_type'] ?? 'needs',
             $data['color'] ?? '#3498db',
             $data['icon'] ?? 'fa-circle',
             $isDefault

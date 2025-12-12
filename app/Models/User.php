@@ -144,4 +144,16 @@ class User
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$value, $userId]);
     }
+
+    /**
+     * Update user's avatar URL/path
+     * @param int $userId
+     * @param string $avatarPath
+     * @return bool
+     */
+    public function updateAvatar($userId, $avatarPath)
+    {
+        $stmt = $this->db->prepare("UPDATE users SET avatar = ? WHERE id = ?");
+        return $stmt->execute([$avatarPath, $userId]);
+    }
 }

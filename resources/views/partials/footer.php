@@ -131,7 +131,8 @@ if (!empty($pageScripts)) {
     })();
 </script>
 
-<!-- Add Transaction Modal -->
+<?php if ($page !== 'transactions'): ?>
+<!-- Add Transaction Modal (global) -->
 <div class="modal fade" id="addTransactionModal" tabindex="-1" aria-labelledby="addTransactionModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -172,6 +173,7 @@ if (!empty($pageScripts)) {
         </div>
     </div>
 </div>
+<?php endif; ?>
 </body>
 
 </html>

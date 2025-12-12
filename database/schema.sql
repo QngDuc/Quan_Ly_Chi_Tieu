@@ -36,8 +36,8 @@ CREATE TABLE `users` (
   -- Thêm 3 dòng này vào schema luôn cho chắc cốp
   `notify_budget_limit` tinyint(1) NOT NULL DEFAULT 1,
   `notify_goal_reminder` tinyint(1) NOT NULL DEFAULT 1,
-  `notify_weekly_summary` tinyint(1) NOT NULL DEFAULT 1,
-  `avatar` varchar(255) DEFAULT 'resources/images/default_avatar.png',
+  -- `notify_weekly_summary` tinyint(1) NOT NULL DEFAULT 1,
+  `avatar` varchar(255) DEFAULT 'https://www.svgrepo.com/show/452030/avatar-default.svg',
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

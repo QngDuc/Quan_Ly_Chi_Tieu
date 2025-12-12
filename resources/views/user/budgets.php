@@ -74,6 +74,18 @@ $this->partial('header');
                     </div>
                 </div>
                 <div class="card-body px-0">
+                    <!-- Smart Budget summary (50/30/20) shown above the table -->
+                    <div id="smartAllocation" class="px-4 pb-3" style="border-bottom:1px solid #f1f3f5;">
+                        <!-- Filled by JS -->
+                        <div class="d-flex justify-content-between align-items-center py-2">
+                            <div class="d-flex gap-3 align-items-center" id="smartAllocationDetails">
+                                <!-- percent boxes inserted here -->
+                            </div>
+                            <div>
+                                <button id="editSmartRatiosBtn" class="btn btn-outline-primary btn-sm">Chỉnh tỷ lệ</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table id="budgetsTable" class="table table-hover align-middle custom-table mb-0">
                             <thead class="bg-light">
@@ -237,3 +249,61 @@ $this->partial('header');
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>if(typeof Chart === 'undefined'){var s=document.createElement('script');s.src = BASE_URL + '/vendor/chart.min.js';document.head.appendChild(s);}</script>
 <?php $this->partial('footer'); ?>
+
+<!-- Small modal for editing Smart Budget ratios -->
+<div class="modal fade" id="smartBudgetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0 px-4 pt-4">
+                <h5 class="modal-title fw-bold">Chỉnh tỷ lệ Ngân sách 50/30/20</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pt-2 pb-3">
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Tổng thu nhập tháng (tùy chọn)</label>
+                    <input type="number" id="smartIncome" class="form-control" placeholder="Nhập thu nhập (không bắt buộc)">
+                </div>
+
+                <div class="mb-3 d-flex align-items-center gap-3">
+                    <div style="flex:1">
+                        <small class="d-block text-muted">Needs</small>
+                        <input type="number" id="needsInput" min="0" max="100" value="50" class="form-control d-inline-block" style="width:120px;">
+                    </div>
+                    <div class="text-end">
+                        <small id="needsAmount">0₫</small>
+                    </div>
+                </div>
+
+                <div class="mb-3 d-flex align-items-center gap-3">
+                    <div style="flex:1">
+                        <small class="d-block text-muted">Wants</small>
+                        <input type="number" id="wantsInput" min="0" max="100" value="30" class="form-control d-inline-block" style="width:120px;">
+                    </div>
+                    <div class="text-end">
+                        <small id="wantsAmount">0₫</small>
+                    </div>
+                </div>
+
+                <div class="mb-3 d-flex align-items-center gap-3">
+                    <div style="flex:1">
+                        <small class="d-block text-muted">Savings</small>
+                        <input type="number" id="savingsInput" min="0" max="100" value="20" class="form-control d-inline-block" style="width:120px;">
+                    </div>
+                    <div class="text-end">
+                        <small id="savingsAmount">0₫</small>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <canvas id="smartBudgetChart" width="300" height="160" style="max-width:100%;"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 pt-0">
+                <button type="button" id="resetRatiosBtn" class="btn btn-secondary rounded-pill px-4">Khôi phục mặc định</button>
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" id="saveRatiosBtn" class="btn btn-primary rounded-pill px-4">Lưu tỷ lệ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="<?php echo BASE_URL; ?>/js/smart-budget.js"></script>

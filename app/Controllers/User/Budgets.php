@@ -68,6 +68,7 @@ class Budgets extends Controllers
                     $bb['category_name'] = $bb['category_name'] ?? '';
                     $bb['category_color'] = $bb['category_color'] ?? '';
                     $bb['category_icon'] = $bb['category_icon'] ?? '';
+                    $bb['category_group'] = $bb['category_group'] ?? 'needs';
                 }
                 unset($bb);
             }
@@ -403,6 +404,104 @@ class Budgets extends Controllers
             }
         } catch (\Exception $e) {
             Response::errorResponse('Lỗi: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
+     * API: Lấy dữ liệu Ngân sách thông minh (50/30/20)
+     * GET /budgets/api_get_smart_budget
+     */
+    public function api_get_smart_budget()
+    {
+        if ($this->request->method() !== 'GET') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
+        }
+
+        try {
+            $userId = $this->getCurrentUserId();
+            
+            // 1. Xác định thời gian (Tháng này)
+            $startDate = date('Y-m-01');
+            $endDate = date('Y-m-t');
+
+            // 2. Lấy Tổng thu nhập thực tế trong tháng
+            $totals = $this->transactionModel->getTotalsForPeriod($userId, $startDate, $endDate);
+            $totalIncome = (float)($totals['income'] ?? 0);
+
+            // 3. Lấy Cài đặt tỷ lệ của user
+            $settings = $this->budgetModel->getUserSmartSettings($userId);
+
+            // 4. Lấy Chi tiêu thực tế theo nhóm
+            $actualSpending = $this->transactionModel->getSpendingByGroup($userId, $startDate, $endDate);
+
+            // 5. Tính toán dữ liệu so sánh
+            $smartData = [
+                'income' => $totalIncome,
+                'settings' => $settings, // {needs: 50, wants: 30...}
+                'groups' => [
+                    'needs' => [
+                        'label' => 'Thiết yếu (Needs)',
+                        'percent' => $settings['needs_percent'],
+                        'allocated' => ($totalIncome * $settings['needs_percent']) / 100,
+                        'spent' => $actualSpending['needs']
+                    ],
+                    'wants' => [
+                        'label' => 'Hưởng thụ (Wants)',
+                        'percent' => $settings['wants_percent'],
+                        'allocated' => ($totalIncome * $settings['wants_percent']) / 100,
+                        'spent' => $actualSpending['wants']
+                    ],
+                    'savings' => [
+                        'label' => 'Tiết kiệm (Savings)',
+                        'percent' => $settings['savings_percent'],
+                        'allocated' => ($totalIncome * $settings['savings_percent']) / 100,
+                        'spent' => $actualSpending['savings']
+                    ]
+                ]
+            ];
+
+            Response::successResponse('Success', $smartData);
+
+        } catch (\Exception $e) {
+            Response::errorResponse('Lỗi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Cập nhật tỷ lệ ngân sách
+     * POST /budgets/api_update_ratios
+     */
+    public function api_update_ratios()
+    {
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method Not Allowed', null, 405);
+            return;
+        }
+
+        try {
+            $data = $this->request->json();
+            $needs = intval($data['needs'] ?? 0);
+            $wants = intval($data['wants'] ?? 0);
+            $savings = intval($data['savings'] ?? 0);
+
+            // Validate tổng = 100%
+            if (($needs + $wants + $savings) !== 100) {
+                Response::errorResponse('Tổng tỷ lệ phải bằng 100%');
+                return;
+            }
+
+            $userId = $this->getCurrentUserId();
+            $result = $this->budgetModel->updateUserSmartSettings($userId, $needs, $wants, $savings);
+
+            if ($result) {
+                Response::successResponse('Cập nhật thành công');
+            } else {
+                Response::errorResponse('Cập nhật thất bại');
+            }
+
+        } catch (\Exception $e) {
+            Response::errorResponse('Lỗi: ' . $e->getMessage());
         }
     }
 }

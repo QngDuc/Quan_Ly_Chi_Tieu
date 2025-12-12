@@ -83,7 +83,7 @@
             <!-- Notification Preferences -->
             <div class="profile-notification-section">
                 <h5 class="profile-notification-title">Tùy Chọn Thông Báo</h5>
-                
+
                 <div class="profile-notification-list">
                     <div class="profile-notification-item">
                         <div class="notification-info">
@@ -91,44 +91,44 @@
                             <span>Cảnh Báo Giới Hạn Ngân Sách</span>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" class="notification-toggle" 
-                                   data-key="notify_budget_limit" 
-                                   <?php echo ($user['notify_budget_limit'] ?? 1) ? 'checked' : ''; ?>>
+                            <input type="checkbox" class="notification-toggle"
+                                data-key="notify_budget_limit"
+                                <?php echo ($user['notify_budget_limit'] ?? 1) ? 'checked' : ''; ?>>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
-                    
+
                     <div class="profile-notification-item">
                         <div class="notification-info">
                             <i class="fas fa-bullseye"></i>
                             <span>Nhắc Nhở Mục Tiêu</span>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" class="notification-toggle" 
-                                   data-key="notify_goal_reminder" 
-                                   <?php echo ($user['notify_goal_reminder'] ?? 1) ? 'checked' : ''; ?>>
+                            <input type="checkbox" class="notification-toggle"
+                                data-key="notify_goal_reminder"
+                                <?php echo ($user['notify_goal_reminder'] ?? 1) ? 'checked' : ''; ?>>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
-                    
-                    <div class="profile-notification-item">
+
+                    <!-- <div class="profile-notification-item">
                         <div class="notification-info">
                             <i class="fas fa-envelope"></i>
                             <span>Email Tóm Tắt Hàng Tuần</span>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" class="notification-toggle" 
-                                   data-key="notify_weekly_summary" 
-                                   <?php echo ($user['notify_weekly_summary'] ?? 1) ? 'checked' : ''; ?>>
+                            <input type="checkbox" class="notification-toggle"
+                                data-key="notify_weekly_summary"
+                                <?php echo ($user['notify_weekly_summary'] ?? 1) ? 'checked' : ''; ?>>
                             <span class="toggle-slider"></span>
                         </label>
-                    </div>
+                    </div> -->
                 </div>
             </div>
             <!-- Data Management -->
             <div class="profile-data-section">
                 <h5 class="profile-data-title">Quản Lý Dữ Liệu</h5>
-                
+
                 <div class="profile-data-buttons">
                     <button type="button" class="btn profile-btn-export" onclick="exportData()">
                         <i class="fas fa-download"></i>Xuất Dữ Liệu
@@ -156,7 +156,7 @@
                         <label class="profile-modal-label">Tên</label>
                         <input type="text" name="name" class="form-control profile-modal-input" required value="<?php echo htmlspecialchars($user['full_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="profile-modal-label">Email</label>
                         <input type="email" name="email" class="form-control profile-modal-input" required value="<?php echo htmlspecialchars($user['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
@@ -183,17 +183,17 @@
                 <div class="modal-body profile-modal-body">
                     <div class="mb-3">
                         <label class="profile-modal-label">Mật Khẩu Hiện Tại</label>
-                        <input type="password" name="current_password" class="form-control profile-modal-input" required>
+                        <input type="password" name="current_password" class="form-control profile-modal-input" required autocomplete="current-password">
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="profile-modal-label">Mật Khẩu Mới</label>
-                        <input type="password" name="new_password" class="form-control profile-modal-input" required minlength="6">
+                        <input type="password" name="new_password" class="form-control profile-modal-input" required minlength="6" autocomplete="new-password">
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="profile-modal-label">Xác Nhận Mật Khẩu Mới</label>
-                        <input type="password" name="confirm_password" class="form-control profile-modal-input" required minlength="6">
+                        <input type="password" name="confirm_password" class="form-control profile-modal-input" required minlength="6" autocomplete="new-password">
                     </div>
                 </div>
                 <div class="modal-footer profile-modal-footer">

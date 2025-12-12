@@ -134,4 +134,30 @@ INSERT INTO `categories` (parent_id, name, type, color, icon, is_default) VALUES
 (@root_no, 'Đi vay', 'income', '#2ECC71', 'fa-hand-holding-medical', 1), -- Tiền đi vào
 (@root_no, 'Thu nợ', 'income', '#27AE60', 'fa-check-circle', 1);         -- Tiền đi vào
 
+
+
+
+
+-- 1. Thêm cột 'group_type' vào bảng categories để phân loại (Thiết yếu / Hưởng thụ / Tiết kiệm)
+ALTER TABLE `categories` 
+ADD COLUMN `group_type` ENUM('needs', 'wants', 'savings') NOT NULL DEFAULT 'needs' AFTER `type`;
+
+-- 2. Cập nhật phân loại cho các danh mục mẫu (Dựa trên data.sql của bạn)
+-- Nhóm NEEDS (Thiết yếu - 50%)
+UPDATE `categories` SET `group_type` = 'needs' 
+WHERE name IN ('Ăn uống', 'Hoá đơn & Tiện ích', 'Thuê nhà', 'Di chuyển', 'Sức khoẻ', 'Giáo dục', 'Gia đình');
+
+-- Nhóm WANTS (Hưởng thụ/Mong muốn - 30%)
+UPDATE `categories` SET `group_type` = 'wants' 
+WHERE name IN ('Mua sắm', 'Giải trí', 'Quà tặng & Quyên góp', 'Tiền chuyến đi', 'Làm đẹp', 'Vui - chơi');
+
+-- Nhóm SAVINGS (Tiết kiệm/Đầu tư - 20%)
+UPDATE `categories` SET `group_type` = 'savings' 
+WHERE name IN ('Đầu tư', 'Bảo hiểm', 'Trả nợ', 'Tiết kiệm');
+
+-- Lưu ý: Các danh mục 'income' (Thu nhập) không cần quan tâm group_type này.
+
+
+
+
 SET FOREIGN_KEY_CHECKS = 1;

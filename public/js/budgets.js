@@ -84,8 +84,59 @@ const BudgetsApp = (function(){
             else calculateAndRenderSummary(budgetsCache);
             renderPie(budgetsCache);
             renderTrend(budgetsCache);
+            // update smart allocation display
+            fetchAndRenderSmartAllocation(data.data.summary);
             renderPagination();
         });
+    }
+
+    async function fetchAndRenderSmartAllocation(summary){
+        const target = document.getElementById('smartAllocationDetails');
+        if (!target) return;
+        try {
+            const resp = await fetch(`${window.BASE_URL}/budgets/api_get_smart_budget`, { cache: 'no-store' });
+            if (!resp.ok) throw new Error('API error');
+            const json = await resp.json();
+            const payload = json && json.data ? json.data : null;
+            // Determine base income to compute amounts: prefer total_income, fallback to summary.total_budget or budgets sum
+            let baseIncome = 0;
+            if (payload && payload.total_income && Number(payload.total_income) > 0) {
+                baseIncome = Number(payload.total_income);
+            } else if (summary && summary.total_budget && Number(summary.total_budget) > 0) {
+                baseIncome = Number(summary.total_budget);
+            } else {
+                baseIncome = budgetsCache.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+            }
+
+            const settings = (payload && payload.settings) ? payload.settings : { needs_percent:50, wants_percent:30, savings_percent:20 };
+
+            // Get actual spent per group from payload.groups if available
+            const actualGroups = (payload && payload.groups) ? payload.groups : { needs:0, wants:0, savings:0 };
+
+            const needsRecommended = Math.round(baseIncome * (Number(settings.needs_percent) || 50) / 100);
+            const wantsRecommended = Math.round(baseIncome * (Number(settings.wants_percent) || 30) / 100);
+            const savingsRecommended = Math.round(baseIncome * (Number(settings.savings_percent) || 20) / 100);
+
+            function box(label, pct, recommended, actual){
+                const remaining = Math.max(0, recommended - (Number(actual)||0));
+                return `
+                    <div class="d-flex flex-column text-center" style="min-width:120px;">
+                        <small class="text-muted">${label}</small>
+                        <strong>${pct}%</strong>
+                        <div class="small text-muted">${formatCurrency(recommended)}</div>
+                        <div class="small text-muted">Còn lại: ${formatCurrency(remaining)}</div>
+                    </div>
+                `;
+            }
+
+            target.innerHTML = box('Cần thiết', settings.needs_percent, needsRecommended, actualGroups.needs)
+                + box('Tùy chọn', settings.wants_percent, wantsRecommended, actualGroups.wants)
+                + box('Tiết kiệm', settings.savings_percent, savingsRecommended, actualGroups.savings);
+        } catch (e) {
+            console.warn('Không thể lấy dữ liệu ngân sách thông minh', e);
+            // fallback: show default 50/30/20 with zeros
+            target.innerHTML = `<div class="text-muted">Không có dữ liệu Smart Budget</div>`;
+        }
     }
 
     function calculateAndRenderSummary(source) {
@@ -165,7 +216,10 @@ const BudgetsApp = (function(){
                                 <i class="fas ${b.category_icon || 'fa-tag'}"></i>
                             </div>
                             <div>
-                                <span class="budget-info-name">${escapeHtml(b.category_name)}</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="budget-info-name">${escapeHtml(b.category_name)}</span>
+                                    <small class="badge bg-light text-muted">${renderGroupLabel(b.category_group)}</small>
+                                </div>
                                 <span class="budget-info-limit">Giới hạn: ${formatCurrency(amount)}</span>
                             </div>
                         </div>
@@ -294,6 +348,12 @@ const BudgetsApp = (function(){
                 cutout: '70%'
             }
         });
+    }
+
+    function renderGroupLabel(groupKey){
+        if (!groupKey) return '';
+        const map = { 'needs': 'Cần thiết', 'wants': 'Tùy chọn', 'savings': 'Tiết kiệm' };
+        return map[groupKey] || groupKey;
     }
 
     async function renderTrend(budgets){
@@ -434,15 +494,44 @@ const BudgetsApp = (function(){
     }
 
     function confirmDelete(id){
-        if(!confirm('Bạn có chắc muốn xóa ngân sách này?')) return;
-        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
-        fetch(`${window.BASE_URL}/budgets/api_delete/${id}`, {
-            method: 'POST', 
-            headers: {'X-CSRF-Token': csrf}
-        }).then(r=>r.json()).then(d => {
-            if(d.success) loadBudgets();
-            else alert(d.message);
-        });
+        SmartSpending.showConfirm(
+            'Xóa Ngân Sách?',
+            'Bạn có chắc chắn muốn xóa ngân sách này? Hành động này không thể hoàn tác.',
+            async () => {
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+                const btn = document.querySelector(`button[data-action="delete"][data-id="${id}"]`);
+                if (btn) btn.disabled = true;
+                try {
+                    const response = await fetch(`${window.BASE_URL}/budgets/api_delete/${id}`, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-Token': csrf }
+                    });
+
+                    const text = await response.text();
+                    let json = null;
+                    try { json = text ? JSON.parse(text) : null; } catch (e) { json = null; }
+                    const resp = json || { success: response.ok, message: text };
+
+                    if (resp.success === true || resp.status === 'success' || response.ok) {
+                        SmartSpending.showToast(resp.message || 'Xóa ngân sách thành công!', 'success');
+                        loadBudgets();
+                    } else {
+                        let msg = resp.message || 'Không thể xóa ngân sách';
+                        if (resp.data && typeof resp.data === 'object') {
+                            const parts = [];
+                            for (const k in resp.data) if (resp.data.hasOwnProperty(k)) parts.push(k + ': ' + resp.data[k]);
+                            if (parts.length) msg += ' - ' + parts.join('; ');
+                        }
+                        SmartSpending.showToast(msg, 'error');
+                    }
+                } catch (err) {
+                    console.error('Error deleting budget:', err);
+                    SmartSpending.showToast('Lỗi khi xóa ngân sách', 'error');
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            }
+        );
     }
 
     function renderCategoryChooser(){
@@ -477,3 +566,16 @@ const BudgetsApp = (function(){
 })();
 
 BudgetsApp.init();
+
+// Open small Smart Budget modal when user clicks "Chỉnh tỷ lệ"
+document.addEventListener('click', function(e){
+    const btn = e.target.closest && e.target.closest('#editSmartRatiosBtn');
+    if (!btn) return;
+    const modalEl = document.getElementById('smartBudgetModal');
+    if (modalEl) new bootstrap.Modal(modalEl).show();
+});
+
+// When smart budget ratios are updated, refresh budgets display
+window.addEventListener('smartBudget:updated', function(){
+    loadBudgets();
+});
