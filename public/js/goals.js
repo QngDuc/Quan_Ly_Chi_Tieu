@@ -29,6 +29,8 @@
 
         function setupEventListeners() {
             if (btnAddGoal) btnAddGoal.addEventListener('click', handleAddGoal);
+                const btnSync = document.getElementById('btnSyncPending');
+                if (btnSync) btnSync.addEventListener('click', syncPendingGoals);
             if (goalForm) goalForm.addEventListener('submit', handleFormSubmit);
 
             document.addEventListener('click', function(e) {
@@ -104,6 +106,10 @@
             document.getElementById('goalDescription').value = description;
             document.getElementById('goalTargetAmount').value = formatNumber(targetAmount);
             document.getElementById('goalDeadline').value = deadline;
+                // optional fields
+                const startEl = document.getElementById('goalStartDate'); if (startEl) startEl.value = '';
+                const catEl = document.getElementById('goalCategory'); if (catEl) catEl.value = goalCard.dataset.categoryId || '';
+                const statusEl = document.getElementById('goalStatus'); if (statusEl) statusEl.value = goalCard.dataset.status || 'active';
 
             const modal = new bootstrap.Modal(goalModal);
             modal.show();
@@ -122,6 +128,22 @@
 
             SmartSpending.showLoader();
             try {
+                // client-side validation: ensure start_date <= deadline
+                const startDate = formData.get('start_date') || '';
+                const deadline = formData.get('deadline') || '';
+                if (startDate && deadline) {
+                    try {
+                        const s = new Date(startDate);
+                        const d = new Date(deadline);
+                        if (s > d) {
+                            SmartSpending.showToast('Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày đến hạn', 'error');
+                            SmartSpending.hideLoader();
+                            formSending = false;
+                            if (saveBtn) { saveBtn.disabled = false; delete saveBtn.dataset.sending; }
+                            return;
+                        }
+                    } catch (err) {}
+                }
                 const url = currentGoalId ? `${window.BASE_URL}/goals/api_update_goal/${currentGoalId}` : `${window.BASE_URL}/goals/api_create_goal`;
                 const response = await fetch(url, { method: 'POST', body: formData });
                 const text = await response.text();
@@ -151,43 +173,94 @@
             SmartSpending.showConfirm(
                 'Xóa Mục Tiêu?',
                 'Bạn có chắc chắn muốn xóa mục tiêu này? Hành động này không thể hoàn tác.',
-                () => {
+                async () => {
                     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                    (async () => {
-                        SmartSpending.showLoader();
-                        try {
-                            const response = await fetch(`${window.BASE_URL}/goals/api_delete_goal/${goalId}`, {
-                                method: 'POST',
-                                headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
-                            });
-                            const text = await response.text();
-                            let json = null;
-                            try { json = text ? JSON.parse(text) : null; } catch (err) { json = null; }
-                            const respData = json || { success: response.ok, message: text };
+                    SmartSpending.showLoader();
+                    try {
+                        const response = await fetch(`${window.BASE_URL}/goals/api_delete_goal/${goalId}`, {
+                            method: 'POST',
+                            headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {}
+                        });
+                        const text = await response.text();
+                        let json = null;
+                        try { json = text ? JSON.parse(text) : null; } catch (err) { json = null; }
+                        const respData = json || { success: response.ok, message: text };
 
-                            if (respData.success === true || respData.status === 'success' || response.ok) {
-                                SmartSpending.showToast(respData.message || 'Xóa mục tiêu thành công!', 'success');
-                                const goalCard = document.querySelector(`[data-goal-id="${goalId}"]`);
-                                if (goalCard) {
-                                    goalCard.style.opacity = '0';
-                                    goalCard.style.transform = 'scale(0.9)';
-                                    setTimeout(() => {
-                                        goalCard.remove();
-                                        if (goalsContainer && goalsContainer.querySelectorAll('[data-goal-id]').length === 0) window.location.reload();
-                                    }, 300);
-                                }
-                            } else {
-                                SmartSpending.showToast(respData.message || 'Không thể xóa mục tiêu', 'error');
+                        if (respData.success === true || respData.status === 'success' || response.ok) {
+                            SmartSpending.showToast(respData.message || 'Xóa mục tiêu thành công!', 'success');
+                            const goalCard = document.querySelector(`[data-goal-id="${goalId}"]`);
+                            if (goalCard) {
+                                goalCard.style.opacity = '0';
+                                goalCard.style.transform = 'scale(0.9)';
+                                setTimeout(() => {
+                                    goalCard.remove();
+                                    if (goalsContainer && goalsContainer.querySelectorAll('[data-goal-id]').length === 0) window.location.reload();
+                                }, 300);
                             }
-                        } catch (error) {
-                            console.error('Error deleting goal:', error);
-                            SmartSpending.showToast('Lỗi khi xóa mục tiêu', 'error');
-                        } finally {
-                            SmartSpending.hideLoader();
+                        } else {
+                            SmartSpending.showToast(respData.message || 'Không thể xóa mục tiêu', 'error');
                         }
-                    })();
+                    } catch (error) {
+                        console.error('Error deleting goal:', error);
+                        SmartSpending.showToast('Lỗi khi xóa mục tiêu', 'error');
+                    } finally {
+                        SmartSpending.hideLoader();
+                    }
                 }
             );
+        }
+
+        /* -- Local pending storage for goals when backend schema not ready -- */
+        const PENDING_KEY = 'ss_pending_goals_v1';
+        function getPendingGoals() {
+            try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch (e) { return []; }
+        }
+        function savePendingGoal(obj) {
+            const list = getPendingGoals();
+            obj._created_at = (new Date()).toISOString();
+            list.push(obj);
+            localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+        }
+        function clearPendingGoals() { localStorage.removeItem(PENDING_KEY); updatePendingCount(); }
+        function updatePendingCount() {
+            const c = getPendingGoals().length;
+            const el = document.getElementById('pendingCount');
+            const btn = document.getElementById('btnSyncPending');
+            if (el) el.textContent = c;
+            if (btn) btn.style.display = c > 0 ? 'inline-block' : 'none';
+        }
+
+        async function syncPendingGoals() {
+            const list = getPendingGoals();
+            if (!list.length) { SmartSpending.showToast('Không có mục tiêu tạm nào cần đồng bộ', 'info'); return; }
+            SmartSpending.showLoader();
+            let successCount = 0;
+            for (const item of list) {
+                try {
+                    const fd = new FormData();
+                    for (const k of Object.keys(item)) if (!k.startsWith('_')) fd.append(k, item[k]);
+                    const response = await fetch(`${window.BASE_URL}/goals/api_create_goal`, { method: 'POST', body: fd });
+                    const text = await response.text();
+                    let json = null; try { json = text ? JSON.parse(text) : null; } catch(e){ json = null; }
+                    const resp = json || { success: response.ok };
+                    if (resp && resp.success) successCount++;
+                } catch (err) {
+                    console.warn('Sync failed for an item', err);
+                }
+            }
+            SmartSpending.hideLoader();
+            if (successCount === list.length) {
+                clearPendingGoals();
+                SmartSpending.showToast('Đồng bộ thành công tất cả mục tiêu tạm', 'success');
+                setTimeout(()=> window.location.reload(), 700);
+            } else if (successCount > 0) {
+                // remove only sent ones for simplicity: clear all and keep none
+                clearPendingGoals();
+                SmartSpending.showToast(`Đồng bộ một phần: ${successCount}/${list.length}`, 'warning');
+                setTimeout(()=> window.location.reload(), 900);
+            } else {
+                SmartSpending.showToast('Không thể đồng bộ mục tiêu tạm, thử lại sau', 'error');
+            }
         }
 
         async function handleMarkCompleted(goalId) {
@@ -220,10 +293,57 @@
             const amt = document.getElementById('goalTargetAmount'); if (amt) amt.value = '0';
         }
 
+        // Charts: fetch goals and render progress & pie charts
+        let progressChart = null, pieChart = null;
+        async function renderCharts() {
+            if (typeof Chart === 'undefined') return;
+            try {
+                const r = await fetch(`${window.BASE_URL}/goals/api_get_goals`, { cache: 'no-store' });
+                const json = await r.json();
+                if (!json || !json.success) return;
+                const goals = json.data.goals || [];
+
+                const labels = goals.map(g => g.name.substring(0,12));
+                const saved = goals.map(g => Number(g.current_amount) || 0);
+                const remaining = goals.map(g => Math.max(0, (Number(g.target_amount)||0) - (Number(g.current_amount)||0)));
+
+                const ctx = document.getElementById('goalProgressChart');
+                if (ctx) {
+                    if (progressChart) progressChart.destroy();
+                    progressChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: 'Đã tiết kiệm', data: saved, backgroundColor: '#16a085' },
+                                { label: 'Còn lại', data: remaining, backgroundColor: '#9ca3af' }
+                            ]
+                        },
+                        options: { responsive:true, maintainAspectRatio:false }
+                    });
+                }
+
+                const pctx = document.getElementById('goalPieChart');
+                if (pctx) {
+                    if (pieChart) pieChart.destroy();
+                    pieChart = new Chart(pctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{ data: saved, backgroundColor: labels.map((_,i)=>['#10b981','#34d399','#60a5fa','#f97316','#ef4444','#f59e0b'][i%6]) }]
+                        },
+                        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+                    });
+                }
+            } catch (e) {
+                console.warn('Unable to render goal charts', e);
+            }
+        }
+
         function formatNumber(num) {
             return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         }
 
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ init(); renderCharts(); updatePendingCount(); }); else { init(); renderCharts(); updatePendingCount(); }
 
     })();

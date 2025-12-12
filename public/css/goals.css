@@ -227,3 +227,41 @@
         display: none;
     }
 }
+
+/* Top summary small cards (like sample) */
+.goals-page #cardsRow .card {
+    border-radius: 12px;
+    padding: 0.75rem;
+    min-height: 88px;
+    display: flex;
+    align-items: center;
+}
+.goals-page #cardsRow .card h6 { margin: 0; font-size: 0.95rem; font-weight:600; }
+.goals-page #cardsRow .card .small { font-size: 0.78rem; }
+.goals-page #cardsRow .progress { height: 6px; margin-top: 6px; border-radius: 6px; }
+.goals-page #cardsRow .badge-status { font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 999px; }
+
+/* Add button style (small rounded green on top-right) */
+.goals-page .btn-success {
+    background: linear-gradient(180deg,#00c27a,#00ad66);
+    border-color: rgba(0,0,0,0.04);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(16,185,129,0.12);
+    border-radius: 8px;
+    padding: .45rem .75rem;
+}
+.goals-page .btn-success i { margin-right: 6px; }
+
+/* Chart cards sizing */
+.goals-page canvas { width:100% !important; height:220px !important; }
+
+/* Right column quick actions */
+.goals-page .card .btn-outline-success { color:#00a86b; border-color:#cdeedd; }
+
+/* Compact list items */
+.goals-page .card.px-3.py-2 { border-radius: 10px; box-shadow: 0 6px 18px rgba(10,20,30,0.04); }
+
+/* Tweak responsiveness */
+@media (max-width: 991px) {
+    .goals-page canvas { height:180px !important; }
+}

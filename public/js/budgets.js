@@ -712,3 +712,36 @@ window.addEventListener('smartBudget:updated', function(){
         loadBudgets();
     }
 });
+
+// Ensure body can scroll again after modals are closed (fix leftover modal-open/backdrop)
+document.addEventListener('hidden.bs.modal', function() {
+    // small timeout to allow Bootstrap to finalize internal state
+    setTimeout(() => {
+        const anyOpen = document.querySelectorAll('.modal.show').length > 0;
+        if (!anyOpen) {
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+            // remove any stray backdrops
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        }
+    }, 10);
+});
+
+// Also handle hide event and clicks on X / dismiss elements which sometimes leave body locked
+function _cleanupModalOpen() {
+    const anyOpen = document.querySelectorAll('.modal.show').length > 0;
+    if (!anyOpen) {
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    }
+}
+
+document.addEventListener('hide.bs.modal', function(){ setTimeout(_cleanupModalOpen, 10); });
+document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('[data-bs-dismiss="modal"]')) {
+        setTimeout(_cleanupModalOpen, 10);
+    }
+});
