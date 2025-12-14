@@ -43,11 +43,15 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Load saved avatar from localStorage
+        // Load saved avatar from localStorage — only apply if server didn't already render an avatar
         const savedAvatar = localStorage.getItem('userAvatar');
         if (savedAvatar) {
             const avatarDisplay = document.getElementById('avatarDisplay');
-            avatarDisplay.innerHTML = `<img src="${savedAvatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">`;
+            // If server rendered an <img> (i.e. avatar comes from DB/Google), don't override it
+            const hasServerImg = avatarDisplay && avatarDisplay.querySelector && avatarDisplay.querySelector('img');
+            if (avatarDisplay && !hasServerImg) {
+                avatarDisplay.innerHTML = `<img src="${savedAvatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">`;
+            }
         }
     // --- XỬ LÝ NÚT GẠT THÔNG BÁO (NOTIFICATION TOGGLES) ---
     const notificationToggles = document.querySelectorAll('.notification-toggle');

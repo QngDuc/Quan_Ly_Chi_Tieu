@@ -8,10 +8,19 @@ use \PDO;
 class Budget
 {
     private $db;
+    private $hasIsActive = false;
 
     public function __construct()
     {
         $this->db = (new ConnectDB())->getConnection();
+        // Detect if the budgets table has an `is_active` column in this schema
+        try {
+            $stmt = $this->db->prepare("SHOW COLUMNS FROM budgets LIKE 'is_active'");
+            $stmt->execute();
+            $this->hasIsActive = (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            $this->hasIsActive = false;
+        }
     }
 
     /**
@@ -58,13 +67,18 @@ class Budget
                 AND t.user_id = b.user_id
                 AND t.type = 'expense'
                 AND t.date BETWEEN ? AND ?
-            WHERE b.user_id = ? AND b.is_active = 1
-            GROUP BY b.id, c.name, c.color, c.icon, c.type, c.group_type
-            ORDER BY b.id DESC
         ";
 
+        // Append WHERE clause depending on schema
+        $sql .= " WHERE b.user_id = ?";
+        if ($this->hasIsActive) {
+            $sql .= " AND b.is_active = 1";
+        }
+        $sql .= "\n            GROUP BY b.id, c.name, c.color, c.icon, c.type, c.group_type\n            ORDER BY b.id DESC\n        ";
+
+        $params = [$startDate, $endDate, $userId];
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$startDate, $endDate, $userId]);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -84,10 +98,11 @@ class Budget
     public function create($data)
     {
         // Check if budget already exists for this category and period
-        $stmt = $this->db->prepare("
-            SELECT id FROM budgets 
-            WHERE user_id = ? AND category_id = ? AND period = ? AND is_active = 1
-        ");
+        $selectSql = "SELECT id FROM budgets WHERE user_id = ? AND category_id = ? AND period = ?";
+        if ($this->hasIsActive) {
+            $selectSql .= " AND is_active = 1";
+        }
+        $stmt = $this->db->prepare($selectSql);
         $stmt->execute([$data['user_id'], $data['category_id'], $data['period']]);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -95,15 +110,10 @@ class Budget
             throw new \Exception('Ngân sách cho danh mục này đã tồn tại trong kỳ này');
         }
 
-        $sql = "
-            INSERT INTO budgets 
-            (user_id, category_id, amount, period, start_date, end_date, alert_threshold, is_active, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-        ";
-
-        $stmt = $this->db->prepare($sql);
-        try {
-            $result = $stmt->execute([
+        // Build INSERT depending on whether `is_active` column exists
+        if ($this->hasIsActive) {
+            $sql = "INSERT INTO budgets (user_id, category_id, amount, period, start_date, end_date, alert_threshold, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            $params = [
                 $data['user_id'],
                 $data['category_id'],
                 $data['amount'],
@@ -111,15 +121,31 @@ class Budget
                 $data['start_date'],
                 $data['end_date'],
                 $data['alert_threshold'],
-                $data['is_active']
-            ]);
+                ($data['is_active'] ?? 1)
+            ];
+        } else {
+            $sql = "INSERT INTO budgets (user_id, category_id, amount, period, start_date, end_date, alert_threshold, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+            $params = [
+                $data['user_id'],
+                $data['category_id'],
+                $data['amount'],
+                $data['period'],
+                $data['start_date'],
+                $data['end_date'],
+                $data['alert_threshold']
+            ];
+        }
+
+        $stmt = $this->db->prepare($sql);
+        try {
+            $result = $stmt->execute($params);
         } catch (\PDOException $e) {
             $msg = $e->getMessage();
             // If DB missing alert_threshold or created_at, retry with a compatible INSERT
             if (stripos($msg, 'Unknown column') !== false || stripos($msg, 'field list') !== false) {
                 // Try without alert_threshold but with created_at
                 try {
-                    $sql2 = "INSERT INTO budgets (user_id, category_id, amount, period, start_date, end_date, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+                    $sql2 = "INSERT INTO budgets (user_id, category_id, amount, period, start_date, end_date, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())";
                     $stmt2 = $this->db->prepare($sql2);
                     $result = $stmt2->execute([
                         $data['user_id'],
@@ -127,12 +153,11 @@ class Budget
                         $data['amount'],
                         $data['period'],
                         $data['start_date'],
-                        $data['end_date'],
-                        $data['is_active']
+                        $data['end_date']
                     ]);
                 } catch (\PDOException $e2) {
                     // Try without created_at (some very old schemas)
-                    $sql3 = "INSERT INTO budgets (user_id, category_id, amount, period, start_date, end_date, alert_threshold, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                    $sql3 = "INSERT INTO budgets (user_id, category_id, amount, period, start_date, end_date, alert_threshold) VALUES (?, ?, ?, ?, ?, ?, ?)";
                     $stmt3 = $this->db->prepare($sql3);
                     $result = $stmt3->execute([
                         $data['user_id'],
@@ -141,8 +166,7 @@ class Budget
                         $data['period'],
                         $data['start_date'],
                         $data['end_date'],
-                        $data['alert_threshold'],
-                        $data['is_active']
+                        $data['alert_threshold']
                     ]);
                 }
             } else {
@@ -169,7 +193,7 @@ class Budget
             $fields[] = 'alert_threshold = ?';
             $values[] = $data['alert_threshold'];
         }
-        if (isset($data['is_active'])) {
+        if ($this->hasIsActive && isset($data['is_active'])) {
             $fields[] = 'is_active = ?';
             $values[] = $data['is_active'];
         }
@@ -228,8 +252,13 @@ class Budget
                 AND t.user_id = b.user_id
                 AND t.type = 'expense'
                 AND t.date BETWEEN ? AND ?
-            WHERE b.user_id = ? AND b.is_active = 1
+            WHERE b.user_id = ?
         ";
+
+        if ($this->hasIsActive) {
+            $sql .= " AND b.is_active = 1";
+        }
+        
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$startDate, $endDate, $userId]);
@@ -276,11 +305,16 @@ class Budget
                 AND t.user_id = b.user_id
                 AND t.type = 'expense'
                 AND t.date BETWEEN ? AND ?
-            WHERE b.user_id = ? AND b.is_active = 1
+            WHERE b.user_id = ?
             GROUP BY b.id, c.name
             HAVING percentage_used >= b.alert_threshold
             ORDER BY percentage_used DESC
         ";
+
+        if ($this->hasIsActive) {
+            // if has is_active we need to insert the condition
+            $sql = str_replace('WHERE b.user_id = ?', "WHERE b.user_id = ? AND b.is_active = 1", $sql);
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$startDate, $endDate, $userId]);
@@ -304,12 +338,15 @@ class Budget
             $end = (new \DateTime($start))->format('Y-m-t');
 
             // Sum budgets active in that month (amounts)
-            $sqlBud = "
-                SELECT COALESCE(SUM(b.amount),0) as total_budget
-                FROM budgets b
-                WHERE b.user_id = ? AND b.is_active = 1
-                  AND NOT (b.end_date < ? OR b.start_date > ?)
-            ";
+                        $sqlBud = "
+                                SELECT COALESCE(SUM(b.amount),0) as total_budget
+                                FROM budgets b
+                                WHERE b.user_id = ?
+                                    AND NOT (b.end_date < ? OR b.start_date > ?)
+                        ";
+                        if ($this->hasIsActive) {
+                                $sqlBud = str_replace('WHERE b.user_id = ?', "WHERE b.user_id = ? AND b.is_active = 1", $sqlBud);
+                        }
             $stmt = $this->db->prepare($sqlBud);
             $stmt->execute([$userId, $start, $end]);
             $rowB = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -47,9 +47,10 @@
     async function loadBudgets() {
         if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">Đang tải...</td></tr>';
         try {
-            const resp = await fetch(`${BASE_URL}/budgets/api_get_all?period=${currentPeriod}`, { cache: 'no-store' });
+            const resp = await fetch(`${BASE_URL}/budgets/api_get_all?period=${currentPeriod}`, { cache: 'no-store', credentials: 'same-origin' });
             if (!resp.ok) throw new Error('API error');
-            const res = await resp.json();
+            let res;
+            try { res = await resp.json(); } catch (e) { const text = await resp.text(); console.error('Non-JSON response', text); throw e; }
             if (res.success) renderTable(res.data.budgets || []);
         } catch (e) {
             console.error('loadBudgets error', e);
@@ -114,12 +115,15 @@
         };
 
         try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             const resp = await fetch(`${BASE_URL}/budgets/api_create`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
-                body: JSON.stringify(data)
-            });
-            const res = await resp.json();
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                    body: JSON.stringify(Object.assign({}, data, { csrf_token: csrf }))
+                });
+            let res;
+            try { res = await resp.json(); } catch(e) { const t = await resp.text(); console.error('Non-JSON response', t); res = { success:false, message: 'Invalid server response' }; }
 
             if (res.success) {
                 const modal = document.getElementById('createBudgetModal');

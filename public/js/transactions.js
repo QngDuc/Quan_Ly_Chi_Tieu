@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </td>
                 <td class="transactions-description">${t.description}</td>
-                <td class="transactions-amount">${t.formatted_amount}</td>
+                <td class="transactions-amount">${t.type === 'income' ? `<span class="amount amount-income">+ ${t.formatted_amount}</span>` : `<span class="amount amount-expense">- ${t.formatted_amount}</span>`}</td>
                 <td class="transactions-type-badge">
                     <span class="transactions-badge-${t.type}">
                         ${t.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}

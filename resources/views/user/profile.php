@@ -14,7 +14,12 @@
             <div class="profile-avatar-wrapper">
                 <div id="avatarDisplay" class="profile-avatar-display" onclick="document.getElementById('avatarInput').click();">
                     <?php if (!empty($user['avatar'])): ?>
-                        <img src="<?php echo BASE_URL; ?>/public/uploads/avatars/<?php echo htmlspecialchars($user['avatar'], ENT_QUOTES, 'UTF-8'); ?>" alt="Avatar">
+                        <?php $avatar = $user['avatar']; ?>
+                        <?php if (filter_var($avatar, FILTER_VALIDATE_URL)): ?>
+                            <img src="<?php echo htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="Avatar">
+                        <?php else: ?>
+                            <img src="<?php echo BASE_URL; ?>/uploads/avatars/<?php echo htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="Avatar">
+                        <?php endif; ?>
                     <?php else: ?>
                         <i class="fas fa-user"></i>
                     <?php endif; ?>

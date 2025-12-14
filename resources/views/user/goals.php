@@ -123,6 +123,13 @@
                                                             <i class="fas fa-coins text-warning me-2" style="width:20px"></i>Nạp tiền
                                                         </a>
                                                     </li>
+                                                    <?php if (!empty($goal['current_amount']) && $goal['current_amount'] > 0): ?>
+                                                    <li>
+                                                        <a class="dropdown-item py-2 text-primary btn-withdraw-goal" href="#" data-id="<?php echo $goal['id']; ?>">
+                                                            <i class="fas fa-arrow-up me-2" style="width:20px"></i>Rút về số dư
+                                                        </a>
+                                                    </li>
+                                                    <?php endif; ?>
                                                     <?php else: ?>
                                                     <li>
                                                         <a class="dropdown-item py-2 text-success disabled" href="#">

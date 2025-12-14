@@ -81,6 +81,42 @@
                 openDepositModal(goalId, goalName);
                 return;
             }
+
+            // Withdraw from goal (Rút về số dư)
+            const withdrawBtn = e.target.closest('.btn-withdraw-goal');
+            if (withdrawBtn) {
+                e.preventDefault();
+                const goalId = withdrawBtn.dataset.id;
+                if (!goalId) return;
+
+                SmartSpending.showConfirm(
+                    'Rút tiền về số dư',
+                    'Bạn có chắc chắn muốn rút toàn bộ số tiền đã nạp vào mục tiêu này về số dư chính?',
+                    async () => {
+                        try {
+                            const response = await fetch(`${window.BASE_URL}/goals/api_withdraw/${goalId}`, {
+                                method: 'POST',
+                                headers: { 'X-CSRF-Token': document.querySelector('input[name="csrf_token"]')?.value || '' }
+                            });
+                            const text = await response.text();
+                            let result = null;
+                            try { result = text ? JSON.parse(text) : null; } catch (e) { result = null; }
+                            const resp = result || { success: response.ok, message: text };
+                            if (resp.success) {
+                                SmartSpending.showToast(resp.message || 'Đã rút về số dư', 'success');
+                                setTimeout(() => window.location.reload(), 600);
+                            } else {
+                                SmartSpending.showToast(resp.message || 'Không thể rút tiền', 'error');
+                            }
+                        } catch (err) {
+                            console.error('Withdraw error', err);
+                            SmartSpending.showToast('Lỗi kết nối', 'error');
+                        }
+                    }
+                );
+
+                return;
+            }
         });
 
         // Reset forms on modal hide

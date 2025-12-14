@@ -1,7 +1,10 @@
 // === SMARTSPENDING - MAIN APPLICATION JS ===
 
 // Utility Functions
-const SmartSpending = {
+var SmartSpending = window.SmartSpending || {};
+
+// Populate core helpers only if not already present (idempotent)
+SmartSpending = Object.assign({
     // Format currency in Vietnamese
     formatCurrency: (amount) => {
         return new Intl.NumberFormat('vi-VN', {

@@ -104,3 +104,15 @@
 
     <div class="container">
         <main class="main-content">
+            <?php
+            // Render any flash toast set by controllers
+            try {
+                $sm = new \App\Core\SessionManager();
+                $toast = $sm->getFlash('toast');
+                if ($toast && is_array($toast)) {
+                    $tmsg = htmlspecialchars($toast['message'] ?? '', ENT_QUOTES, 'UTF-8');
+                    $ttype = htmlspecialchars($toast['type'] ?? 'success', ENT_QUOTES, 'UTF-8');
+                    echo "<script>document.addEventListener('DOMContentLoaded', function(){ try{ SmartSpending.showToast('{$tmsg}', '{$ttype}'); }catch(e){} });</script>\n";
+                }
+            } catch (\Throwable $e) {}
+            ?>

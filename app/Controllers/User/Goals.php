@@ -361,4 +361,49 @@ class Goals extends Controllers
             Response::errorResponse('Error: ' . $e->getMessage());
         }
     }
+
+    /**
+     * API: Withdraw saved funds from a goal back to main balance
+     */
+    public function api_withdraw($id = null)
+    {
+        if ($this->request->method() !== 'POST') {
+            Response::errorResponse('Method not allowed', null, 405);
+            return;
+        }
+
+        if (!$id) {
+            Response::errorResponse('Goal ID is required', null, 400);
+            return;
+        }
+
+        // Verify CSRF token
+        CsrfProtection::verify();
+
+        try {
+            $userId = $this->getCurrentUserId();
+
+            // Verify ownership
+            $goal = $this->goalModel->getById($id, $userId);
+            if (!$goal) {
+                Response::errorResponse('Goal not found', null, 404);
+                return;
+            }
+
+            // Ensure there is money to withdraw
+            $currentAmount = isset($goal['current_amount']) ? floatval($goal['current_amount']) : 0.0;
+            if ($currentAmount <= 0) {
+                Response::errorResponse('Mục tiêu không có số dư để rút');
+                return;
+            }
+
+            if ($this->goalModel->withdraw($userId, $id)) {
+                Response::successResponse('Đã rút tiền về số dư thành công');
+            } else {
+                Response::errorResponse('Không thể rút tiền, vui lòng thử lại');
+            }
+        } catch (\Exception $e) {
+            Response::errorResponse('Error: ' . $e->getMessage());
+        }
+    }
 }

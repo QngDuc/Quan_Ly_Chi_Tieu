@@ -11,7 +11,7 @@ $this->partial('header');
     <div class="container" style="max-width: 1200px;">
         <!-- Header -->
         <div class="transactions-header">
-            <h2 class="transactions-title">Giao dịch</h2>
+            <h2 class="transactions-title">Lịch sử giao dịch</h2>
             <button type="button" class="btn transactions-add-btn" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
                 <i class="fas fa-plus"></i>Thêm giao dịch
             </button>
@@ -61,7 +61,7 @@ $this->partial('header');
                             <th>Danh mục</th>
                             <th>Mô tả</th>
                             <th style="text-align: right;">Số tiền</th>
-                            <th style="text-align: center;">Loại</th>
+                            <!-- <th style="text-align: center;">Loại</th> -->
                             <th style="text-align: center;">Hành động</th>
                         </tr>
                     </thead>
@@ -86,15 +86,19 @@ $this->partial('header');
                                     <?php echo $this->escape($t['description']); ?>
                                 </td>
                                 <td class="transactions-amount">
-                                    <?php echo number_format(abs($t['amount']), 0, ',', '.'); ?> ₫
+                                    <?php if ($t['amount'] > 0): ?>
+                                        <span class="amount amount-income">+ <?php echo number_format($t['amount'], 0, ',', '.'); ?> ₫</span>
+                                    <?php else: ?>
+                                        <span class="amount amount-expense">- <?php echo number_format(abs($t['amount']), 0, ',', '.'); ?> ₫</span>
+                                    <?php endif; ?>
                                 </td>
-                                <td class="transactions-type-badge">
+                                <!-- <td class="transactions-type-badge">
                                     <?php if ($t['amount'] > 0): ?>
                                         <span class="transactions-badge-income">Thu nhập</span>
                                     <?php else: ?>
                                         <span class="transactions-badge-expense">Chi tiêu</span>
                                     <?php endif; ?>
-                                </td>
+                                </td> -->
                                 <td class="transactions-actions">
                                     <button type="button" 
                                             class="btn btn-sm btn-edit-transaction transactions-btn-edit" 

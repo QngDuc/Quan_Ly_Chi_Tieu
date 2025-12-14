@@ -9,6 +9,7 @@ use App\Middleware\CsrfProtection;
 use App\Middleware\AuthCheck;
 use App\Services\FinancialUtils;
 use App\Core\ConnectDB;
+use App\Core\SessionManager;
 
 class Transactions extends Controllers
 {
@@ -81,19 +82,28 @@ class Transactions extends Controllers
 
             // Basic validation
             if ($amount > 0 && !empty($categoryId)) {
-                $this->transactionModel->createTransaction(
-                    $userId,
-                    $categoryId,
-                    $amount,
-                    $type,
-                    $date,
-                    $description
-                );
+                // Use TransactionController to apply JARS logic and wallet checks
+                $txController = new TransactionController();
+                $res = $txController->createTransaction($userId, [
+                    'type' => $type,
+                    'amount' => $amount,
+                    'category_id' => $categoryId,
+                    'date' => $date,
+                    'description' => $description
+                ]);
+                // Flash result message for web UI
+                $session = new SessionManager();
+                if (is_array($res) && isset($res['success']) && $res['success'] === true) {
+                    $session->flash('toast', ['type' => 'success', 'message' => 'Thêm giao dịch thành công']);
+                } else {
+                    $msg = is_array($res) && isset($res['message']) ? $res['message'] : 'Không thể thêm giao dịch';
+                    $session->flash('toast', ['type' => 'error', 'message' => $msg]);
+                }
             }
         }
 
-        // Redirect back to dashboard to see the result
-        $this->redirect('/dashboard');
+        // Redirect back to transactions page to see the result
+        $this->redirect('/transactions');
     }
 
 
@@ -213,14 +223,15 @@ class Transactions extends Controllers
             }
 
             // 3. LƯU GIAO DỊCH (Nếu các kiểm tra trên đều qua hoặc đã được confirm hoặc user tắt thông báo)
-            $result = $this->transactionModel->createTransaction(
-                $userId,
-                $validData['category_id'],
-                $validData['amount'],
-                $validData['type'] ?? 'expense',
-                $validData['date'],
-                $validData['description']
-            );
+            // Delegate creation to TransactionController which implements JARS logic
+            $txController = new TransactionController();
+            $result = $txController->createTransaction($userId, [
+                'type' => $validData['type'] ?? 'expense',
+                'amount' => $validData['amount'],
+                'category_id' => $validData['category_id'],
+                'date' => $validData['date'],
+                'description' => $validData['description'] ?? ''
+            ]);
 
             // Logic phụ: Cập nhật ngân sách 'Cho vay' nếu là giao dịch Thu nợ/Trả nợ
             $debtCategoryIds = [44, 42]; // id Thu nợ, Trả nợ
@@ -230,14 +241,14 @@ class Transactions extends Controllers
                 $budgets = $budgetModel->getBudgetsWithSpending($userId, 'monthly');
                 foreach ($budgets as $budget) {
                     if ($budget['category_id'] == $loanCategoryId) {
-                        $this->transactionModel->createTransaction(
-                            $userId,
-                            $loanCategoryId,
-                            -abs($validData['amount']),
-                            'expense',
-                            $validData['date'],
-                            'Thu nợ tự động (Điều chỉnh ngân sách)'
-                        );
+                        // Create adjustment using TransactionController to keep consistent JARS handling
+                        $txController->createTransaction($userId, [
+                            'type' => 'expense',
+                            'amount' => abs($validData['amount']),
+                            'category_id' => $loanCategoryId,
+                            'date' => $validData['date'],
+                            'description' => 'Thu nợ tự động (Điều chỉnh ngân sách)'
+                        ]);
                         break;
                     }
                 }

@@ -131,7 +131,7 @@
 
 		// Google Sign In
 		function googleSignIn() {
-			const url = '<?= BASE_URL; ?>/auth/login/google_login';
+			const url = '<?= BASE_URL; ?>/auth/login/google_redirect';
 			const popupUrl = url + (url.indexOf('?') === -1 ? '?popup=1' : '&popup=1');
 			const w = 600, h = 700;
 			const left = (window.screen.width / 2) - (w / 2);
@@ -142,7 +142,7 @@
 
 		// Google Sign Up
 		function googleSignUp() {
-			const url = '<?= BASE_URL; ?>/auth/login/google_login';
+			const url = '<?= BASE_URL; ?>/auth/login/google_redirect';
 			const popupUrl = url + (url.indexOf('?') === -1 ? '?popup=1' : '&popup=1');
 			const w = 600, h = 700;
 			const left = (window.screen.width / 2) - (w / 2);

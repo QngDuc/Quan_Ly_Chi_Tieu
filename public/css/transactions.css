@@ -318,9 +318,10 @@
 
 .transactions-actions {
     display: flex;
-    gap: 10px;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 14px 18px;
 }
 
 .transactions-btn-edit,
@@ -491,4 +492,15 @@
     border: 1px solid #e6e6e6;
     padding: 8px 14px;
     border-radius: 8px;
+}
+
+
+.amount.amount-income {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.amount.amount-expense {
+    color: var(--danger);
+    font-weight: 700;
 }

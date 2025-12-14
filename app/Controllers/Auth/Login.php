@@ -33,6 +33,38 @@ class Login extends Controllers
     }
 
     /**
+     * Hàm hỗ trợ: Khởi tạo dữ liệu mặc định cho User mới (Ví + Cài đặt)
+     * Dùng chung cho cả Register và Google Login
+     */
+    private function initNewUserData($userId)
+    {
+        try {
+            // A. Khởi tạo Cài đặt tỷ lệ 6 hũ (Budget Settings)
+            $budgetModel = $this->model('Budget');
+            if ($budgetModel) {
+                $budgetModel->initUserSmartSettings($userId);
+            }
+
+            // B. Khởi tạo 6 Ví thực tế (User Wallets)
+            $db = (new ConnectDB())->getConnection();
+            $jars = ['nec', 'ffa', 'ltss', 'edu', 'play', 'give'];
+            
+            $sql = "INSERT IGNORE INTO user_wallets (user_id, jar_code, balance) VALUES (?, ?, 0)";
+            $stmt = $db->prepare($sql);
+            
+            foreach ($jars as $jarCode) {
+                $stmt->execute([$userId, $jarCode]);
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            // Log lỗi nhưng không chặn flow chính
+            error_log("Init data error for user $userId: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * API: Đăng ký tài khoản mới
      */
     public function api_register()
@@ -57,8 +89,7 @@ class Login extends Controllers
             if (empty($password) || strlen($password) < 6) $errors[] = 'Mật khẩu phải từ 6 ký tự.';
             if ($password !== $confirmPassword) $errors[] = 'Mật khẩu nhập lại không khớp.';
 
-            // Kiểm tra email tồn tại
-            if ($this->userModel->findByEmail($email)) {
+            if ($this->userModel->getUserByEmail($email)) {
                 $errors[] = 'Email này đã được sử dụng.';
             }
 
@@ -68,43 +99,14 @@ class Login extends Controllers
             }
 
             // 2. Tạo User mới
-            $userId = $this->userModel->createUser($username = $email, $email, $password, $fullName);
+            $userId = $this->userModel->createUser($email, $email, $password, $fullName);
 
             if ($userId) {
-                // ============================================================
-                // [NÂNG CẤP] KHỞI TẠO DỮ LIỆU MẶC ĐỊNH CHO NGƯỜI DÙNG MỚI
-                // ============================================================
-                
-                try {
-                    // A. Khởi tạo Cài đặt tỷ lệ 6 hũ (Budget Settings)
-                    // Load model Budget để dùng hàm init có sẵn
-                    $budgetModel = $this->model('Budget');
-                    if ($budgetModel) {
-                        $budgetModel->initUserSmartSettings($userId);
-                    }
-
-                    // B. Khởi tạo 6 Ví thực tế (User Wallets)
-                    // Sử dụng kết nối DB trực tiếp để đảm bảo chạy được ngay cả khi chưa có Wallet Model
-                    $db = (new ConnectDB())->getConnection();
-                    $jars = ['nec', 'ffa', 'ltss', 'edu', 'play', 'give'];
-                    
-                    $sql = "INSERT IGNORE INTO user_wallets (user_id, jar_code, balance) VALUES (?, ?, 0)";
-                    $stmt = $db->prepare($sql);
-                    
-                    foreach ($jars as $jarCode) {
-                        $stmt->execute([$userId, $jarCode]);
-                    }
-
-                } catch (\Exception $e) {
-                    // Log lỗi (nếu có) nhưng không chặn user đăng ký thành công
-                    // Có thể ghi vào file log của hệ thống
-                    error_log("Init data error for user $userId: " . $e->getMessage());
-                }
-                
-                // ============================================================
+                // 3. Gọi hàm khởi tạo dữ liệu (Code sạch hơn nhiều)
+                $this->initNewUserData($userId);
 
                 Response::successResponse('Đăng ký tài khoản thành công!', [
-                    'redirect_url' => '/login' // Frontend sẽ chuyển hướng về trang login
+                    'redirect_url' => '/login'
                 ]);
             } else {
                 Response::errorResponse('Có lỗi xảy ra khi tạo tài khoản.');
@@ -116,7 +118,7 @@ class Login extends Controllers
     }
 
     /**
-     * API: Đăng nhập
+     * API: Đăng nhập thường
      */
     public function api_login()
     {
@@ -135,23 +137,17 @@ class Login extends Controllers
                 return;
             }
 
-            $user = $this->userModel->findByEmail($email);
+            $user = $this->userModel->getUserByEmail($email);
 
             if ($user && password_verify($password, $user['password'])) {
-                // Kiểm tra active
                 if (isset($user['is_active']) && $user['is_active'] == 0) {
                      Response::errorResponse('Tài khoản đã bị khóa.');
                      return;
                 }
 
                 // Lưu session
-                $this->request->setSession('user_id', $user['id']);
-                $this->request->setSession('email', $user['email']);
-                $this->request->setSession('full_name', $user['full_name']);
-                $this->request->setSession('role', $user['role']);
-                $this->request->setSession('avatar', $user['avatar'] ?? 'default_avatar.png');
+                $this->setLoginSession($user);
 
-                // Điều hướng dựa trên role
                 $redirectUrl = ($user['role'] === 'admin') ? '/admin/dashboard' : '/dashboard';
 
                 Response::successResponse('Đăng nhập thành công!', [
@@ -178,9 +174,55 @@ class Login extends Controllers
     }
 
     // =========================================================================
-    // GOOGLE LOGIN HELPERS (Giữ nguyên logic cũ nếu bạn có dùng)
+    // GOOGLE LOGIN & OAUTH 2.0
     // =========================================================================
 
+    /**
+     * Bước 1: Chuyển hướng người dùng sang Google
+     */
+    public function google_redirect()
+    {
+        if (!defined('GOOGLE_CLIENT_ID')) {
+            $this->redirect('/login?error=' . urlencode('Google OAuth chưa được cấu hình.'));
+            return;
+        }
+
+        $authUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+        
+        // [QUAN TRỌNG] Redirect URI phải là URL tuyệt đối (scheme + host + path)
+        // Prefer `APP_URL` from env; nếu không có, dựng URL từ request
+            if (defined('APP_URL') && !empty(constant('APP_URL'))) {
+                $baseRedirect = rtrim(constant('APP_URL'), '/');
+        } else {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            // try to derive base path (keep /Quan_Ly_Chi_Tieu/public if present)
+            $script = $_SERVER['SCRIPT_NAME'] ?? '';
+            $basePath = str_replace('/index.php', '', $script);
+            $baseRedirect = rtrim($scheme . $host . $basePath, '/');
+        }
+
+        $redirectUri = $baseRedirect . '/auth/login/google_callback';
+
+        $params = [
+            'client_id' => GOOGLE_CLIENT_ID,
+            'redirect_uri' => $redirectUri,
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'access_type' => 'online',
+            'prompt' => 'select_account'
+        ];
+
+        if (isset($_GET['popup']) && $_GET['popup'] == '1') {
+            $params['state'] = 'popup=1';
+        }
+
+        $this->response->redirect($authUrl . '?' . http_build_query($params));
+    }
+
+    /**
+     * Bước 2: Xử lý Callback từ Google
+     */
     public function google_login()
     {
         $code = $_GET['code'] ?? null;
@@ -193,6 +235,8 @@ class Login extends Controllers
             // 1. Get Access Token
             $tokenData = $this->getAccessToken($code);
             if (!$tokenData || !isset($tokenData['access_token'])) {
+                 // Debug: Nếu lỗi thì in ra để xem (bỏ comment nếu cần thiết)
+                 // var_dump($tokenData); die(); 
                  throw new \Exception('Không thể lấy Access Token từ Google.');
             }
 
@@ -207,29 +251,18 @@ class Login extends Controllers
             $avatar = $googleUser['picture'] ?? '';
             
             // 3. Check or Create User
-            $user = $this->userModel->findByEmail($email);
+            $user = $this->userModel->getUserByEmail($email);
+            
             if (!$user) {
                 // Auto register
-                // Password ngẫu nhiên vì login bằng Google
                 $randomPass = bin2hex(random_bytes(8)); 
                 $userId = $this->userModel->createUser($email, $email, $randomPass, $name);
                 
                 if ($userId) {
-                    // Cập nhật avatar
                     $this->userModel->updateAvatar($userId, $avatar);
                     
-                    // [IMPORTANT] Cũng phải khởi tạo ví cho user Google mới
-                    $db = (new ConnectDB())->getConnection();
-                    $jars = ['nec', 'ffa', 'ltss', 'edu', 'play', 'give'];
-                    $sql = "INSERT IGNORE INTO user_wallets (user_id, jar_code, balance) VALUES (?, ?, 0)";
-                    $stmt = $db->prepare($sql);
-                    foreach ($jars as $jarCode) {
-                        $stmt->execute([$userId, $jarCode]);
-                    }
-                    
-                    // Init Settings
-                    $budgetModel = $this->model('Budget');
-                    if($budgetModel) $budgetModel->initUserSmartSettings($userId);
+                    // Gọi hàm khởi tạo dữ liệu ví (đã tách ra)
+                    $this->initNewUserData($userId);
                     
                     $user = $this->userModel->getUserById($userId);
                 } else {
@@ -238,28 +271,66 @@ class Login extends Controllers
             }
 
             // 4. Set Session
-            $this->request->setSession('user_id', $user['id']);
-            $this->request->setSession('email', $user['email']);
-            $this->request->setSession('full_name', $user['full_name']);
-            $this->request->setSession('role', $user['role']);
-            $this->request->setSession('avatar', $user['avatar']);
+            $this->setLoginSession($user);
 
-            $redirectUrl = ($user['role'] === 'admin') ? '/admin/dashboard' : '/dashboard';
-            $this->redirect($redirectUrl);
+            // 5. Điều hướng (Hỗ trợ Popup)
+            $path = ($user['role'] === 'admin') ? '/admin/dashboard' : '/dashboard';
+            $state = $_GET['state'] ?? null;
+
+            if ($state && strpos($state, 'popup=1') !== false) {
+                // Build absolute base URL (prefer APP_URL, otherwise derive from request)
+                    if (defined('APP_URL') && !empty(constant('APP_URL'))) {
+                        $baseRedirect = rtrim(constant('APP_URL'), '/');
+                } else {
+                    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+                    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                    $script = $_SERVER['SCRIPT_NAME'] ?? '';
+                    $basePath = str_replace('/index.php', '', $script);
+                    $baseRedirect = rtrim($scheme . $host . $basePath, '/');
+                }
+
+                $absoluteRedirect = $baseRedirect . $path;
+
+                echo '<!doctype html><html><head><meta charset="utf-8"><title>Đang xử lý...</title></head><body>';
+                echo "<script>if(window.opener){window.opener.location='" . addslashes($absoluteRedirect) . "'; window.close();} else {window.location='" . addslashes($path) . "';}</script>";
+                echo '</body></html>';
+                return;
+            }
+
+            // Non-popup flow: use relative path (Controllers::redirect will prefix BASE_URL)
+            $this->redirect($path);
 
         } catch (\Exception $e) {
-            // Có thể redirect về login kèm thông báo lỗi
             $this->redirect('/login?error=' . urlencode($e->getMessage()));
         }
     }
 
+    public function google_callback()
+    {
+        return $this->google_login();
+    }
+
+    /**
+     * Helper: Lấy Token từ Google (Đã FIX lỗi URI và cURL)
+     */
     private function getAccessToken($code)
     {
-        // Kiểm tra xem Constants đã được load chưa, nếu chưa thì define tạm để tránh lỗi
         if (!defined('GOOGLE_CLIENT_ID')) return null;
 
         $tokenUrl = 'https://oauth2.googleapis.com/token';
-        $redirectUri = BASE_URL . '/login/google_login'; // Đảm bảo khớp cấu hình Google Console
+        
+        // Ensure redirect URI is absolute and matches the one sent to Google
+            if (defined('APP_URL') && !empty(constant('APP_URL'))) {
+                $baseRedirect = rtrim(constant('APP_URL'), '/');
+        } else {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $script = $_SERVER['SCRIPT_NAME'] ?? '';
+            $basePath = str_replace('/index.php', '', $script);
+            $baseRedirect = rtrim($scheme . $host . $basePath, '/');
+        }
+
+        $redirectUri = $baseRedirect . '/auth/login/google_callback'; 
 
         $params = [
             'code' => $code,
@@ -272,15 +343,26 @@ class Login extends Controllers
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $tokenUrl);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
+        
+        // [FIX] Dùng http_build_query để gửi đúng định dạng application/x-www-form-urlencoded
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params)); 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Localhost fix
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Localhost only
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+
+        // Không dùng curl_close($ch) nữa vì PHP 8+ tự xử lý
+
+        if ($response === false) {
+             // Log error curl
+             error_log('Curl error: ' . curl_error($ch));
+             return null;
+        }
 
         if ($httpCode !== 200) {
+            error_log('Google Token Error Code: ' . $httpCode . ' Response: ' . $response);
             return null;
         }
 
@@ -299,12 +381,22 @@ class Login extends Controllers
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
         if ($httpCode !== 200) {
             return null;
         }
 
         return json_decode($response, true);
+    }
+
+    /**
+     * Helper: Set Session tập trung
+     */
+    private function setLoginSession($user) {
+        $this->request->setSession('user_id', $user['id']);
+        $this->request->setSession('email', $user['email']);
+        $this->request->setSession('full_name', $user['full_name']);
+        $this->request->setSession('role', $user['role']);
+        $this->request->setSession('avatar', $user['avatar'] ?? 'default_avatar.png');
     }
 }

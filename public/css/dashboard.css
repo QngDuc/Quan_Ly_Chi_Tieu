@@ -196,7 +196,7 @@
 }
 
 .text-dark {
-    color: var(--dark-text);
+    color: var(--danger) !important;
 }
 
 /* --- Charts Area --- */

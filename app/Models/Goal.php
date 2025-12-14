@@ -10,6 +10,24 @@ class Goal {
     public function __construct() {
         $connectDB = new ConnectDB();
         $this->db = $connectDB->getConnection();
+        // Ensure goal_transactions table exists (some schemas may not include it)
+        try {
+            $check = $this->db->prepare("SHOW TABLES LIKE 'goal_transactions'");
+            $check->execute();
+            $exists = (bool)$check->fetch(PDO::FETCH_ASSOC);
+            if (!$exists) {
+                $createSql = "CREATE TABLE IF NOT EXISTS goal_transactions (
+                    id INT NOT NULL AUTO_INCREMENT,
+                    goal_id INT NOT NULL,
+                    transaction_id INT NOT NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+                $this->db->exec($createSql);
+            }
+        } catch (\Exception $e) {
+            // Ignore — operations will gracefully handle missing table later
+        }
     }
     
     /**
@@ -229,5 +247,63 @@ class Goal {
             if($g['status'] == 'completed') $completed++;
         }
         return ['total_goals'=>count($goals), 'active_goals'=>$active, 'completed_goals'=>$completed, 'total_target'=>$target, 'total_saved'=>$totalSaved];
+    }
+
+    /**
+     * Withdraw full saved amount from a goal back to main balance.
+     * This will create a positive income transaction for the user and remove
+     * linked "deposit" transactions that were used to fund the goal.
+     */
+    public function withdraw($userId, $goalId)
+    {
+        try {
+            $goal = $this->getById($goalId, $userId);
+            if (!$goal) return false;
+
+            $currentAmount = isset($goal['current_amount']) ? floatval($goal['current_amount']) : 0.0;
+            if ($currentAmount <= 0) return false;
+
+            $this->db->beginTransaction();
+
+            // Use the goal's category if available, otherwise fallback to 1
+            $catId = $goal['category_id'] ?? 1;
+
+            // 1) Create income transaction to represent returning money to main balance
+            $sqlInc = "INSERT INTO transactions (user_id, category_id, amount, date, description, type, created_at)
+                       VALUES (:uid, :cid, :amount, :date, :desc, 'income', NOW())";
+            $stmtInc = $this->db->prepare($sqlInc);
+            $stmtInc->execute([
+                ':uid' => $userId,
+                ':cid' => $catId,
+                ':amount' => abs($currentAmount),
+                ':date' => date('Y-m-d'),
+                ':desc' => 'Rút mục tiêu: ' . ($goal['name'] ?? '')
+            ]);
+
+            // 2) Remove linked deposit transactions (those tied to this goal and with description 'Nạp mục tiêu:%')
+            $stmtLinks = $this->db->prepare("SELECT transaction_id FROM goal_transactions WHERE goal_id = ?");
+            $stmtLinks->execute([$goalId]);
+            $rows = $stmtLinks->fetchAll(PDO::FETCH_COLUMN, 0);
+
+            if (!empty($rows)) {
+                // Delete only transactions that match the deposit description and belong to user
+                $placeholders = implode(',', array_fill(0, count($rows), '?'));
+                $params = $rows;
+                $params[] = $userId;
+                $delSql = "DELETE FROM transactions WHERE id IN ($placeholders) AND user_id = ? AND description LIKE 'Nạp mục tiêu:%'";
+                $delStmt = $this->db->prepare($delSql);
+                $delStmt->execute($params);
+
+                // Remove goal_transactions links
+                $delLinks = $this->db->prepare("DELETE FROM goal_transactions WHERE goal_id = ?");
+                $delLinks->execute([$goalId]);
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (\Exception $e) {
+            try { $this->db->rollBack(); } catch (\Exception $ex) {}
+            return false;
+        }
     }
 }
