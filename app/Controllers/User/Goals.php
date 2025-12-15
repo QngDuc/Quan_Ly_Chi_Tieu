@@ -402,7 +402,7 @@ class Goals extends Controllers
             } else {
                 Response::errorResponse('Không thể rút tiền, vui lòng thử lại');
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Response::errorResponse('Error: ' . $e->getMessage());
         }
     }

@@ -203,6 +203,42 @@ document.addEventListener('DOMContentLoaded', function () {
 // Export for use in other files
 window.SmartSpending = SmartSpending;
 
+// Modal-based notification helper (falls back to toast if Bootstrap modal unavailable)
+SmartSpending.showModal = function(message, title = 'Thông báo', type = 'info', autoHide = true, timeout = 3500) {
+    try {
+        // Prefer the global modal in footer if available
+        var modalEl = document.getElementById('globalNotificationModal');
+        var titleEl = document.getElementById('globalNotificationModalTitle');
+        var bodyEl = document.getElementById('globalNotificationModalBody');
+        if (titleEl) titleEl.textContent = title || 'Thông báo';
+        if (bodyEl) bodyEl.innerHTML = message;
+
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            var inst = bootstrap.Modal.getOrCreateInstance(modalEl);
+            inst.show();
+            if (autoHide && timeout > 0) {
+                setTimeout(function() {
+                    try { inst.hide(); } catch (e) {}
+                }, timeout);
+            }
+            return;
+        }
+    } catch (e) {
+        // ignore and fallback
+        console.warn('showModal error', e);
+    }
+
+    // fallback to toast
+    SmartSpending.showToast(message, type === 'error' ? 'error' : 'info');
+};
+
+// Convenience wrappers
+SmartSpending.showError = function(msg, title) { SmartSpending.showModal(msg, title || 'Lỗi', 'error', false); };
+SmartSpending.showInfo = function(msg, title) { SmartSpending.showModal(msg, title || 'Thông tin', 'info', true, 3000); };
+
+// Override default alert to use modal notifications
+window.alert = function(msg) { try { SmartSpending.showModal(String(msg), 'Thông báo', 'info', false); } catch (e) { console.log('Alert:', msg); } };
+
 // Avatar upload helper: detects profile avatar form and handles AJAX upload
 document.addEventListener('DOMContentLoaded', function () {
     try {

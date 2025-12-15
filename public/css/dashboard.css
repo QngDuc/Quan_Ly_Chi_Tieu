@@ -271,3 +271,77 @@
         font-size: 28px;
     }
 }
+
+
+/* ================================================= */
+/* [MỚI] STYLE CHO HỆ THỐNG 6 HŨ (JARS) */
+/* ================================================= */
+
+.jars-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr); /* Chia 6 cột đều nhau */
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.jar-mini-card {
+    background: #fff;
+    border: 1px solid var(--border-color); /* Dùng biến màu viền cũ của bạn */
+    border-radius: var(--border-radius);
+    padding: 15px;
+    text-align: center;
+    transition: transform 0.2s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.jar-mini-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.jar-mini-card .jar-name {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--light-text);
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.jar-mini-card .jar-balance {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dark-text);
+    margin-bottom: 5px;
+}
+
+.jar-mini-card .jar-percent {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background-color: #f3f4f6;
+    color: var(--medium-text);
+    font-weight: 600;
+}
+
+/* Thanh màu trang trí trên đầu mỗi hũ */
+.jar-border-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+}
+
+/* Responsive: Co lại khi màn hình nhỏ */
+@media (max-width: 1024px) {
+    .jars-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+    .jars-grid { grid-template-columns: repeat(2, 1fr); }
+}

@@ -141,4 +141,25 @@ var SmartSpending = window.SmartSpending;
 
     // Run once on load
     updateUI();
+
+    // Listen for jar updates from transactions flow and refresh balances in UI
+    window.addEventListener('smartbudget:updated', function(e) {
+        try {
+            var detail = e && e.detail ? e.detail : null;
+            if (!detail || !detail.jar_updates) return;
+            var jars = detail.jar_updates;
+            // jars expected: { nec: number, ffa: number, ltss: number, edu: number, play: number, give: number }
+            Object.keys(jars).forEach(function(code) {
+                var el = document.querySelector('.jar-balance[data-jar="' + code + '"]');
+                if (el) {
+                    // format number as VN currency without symbol (we append symbol in markup)
+                    try {
+                        el.textContent = new Intl.NumberFormat('vi-VN').format(parseFloat(jars[code] || 0));
+                    } catch (err) {
+                        el.textContent = (jars[code] || 0);
+                    }
+                }
+            });
+        } catch (err) { console.warn('Error applying jar updates', err); }
+    });
 })();

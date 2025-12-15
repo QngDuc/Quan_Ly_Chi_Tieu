@@ -15,24 +15,43 @@ class Budgets extends Controllers
     public function __construct()
     {
         parent::__construct();
-        $this->budgetModel = new Budget();
+        $this->budgetModel = $this->model('Budget');
     }
 
     // ... (Giữ nguyên hàm index cũ của bạn nếu có) ...
-    public function index()
+   public function index()
     {
         $userId = $this->getCurrentUserId();
 
-        // Load model Category để lấy danh sách
-        $categoryModel = new \App\Models\Category(); // Hoặc $this->model('Category') nếu có base controller hỗ trợ
-        $categories = $categoryModel->getAll($userId);
+        // 1. Lấy dữ liệu 6 Hũ và Cài đặt tỷ lệ (QUAN TRỌNG)
+        $walletModel = $this->model('Wallet');
+        $wallets = $walletModel->getAllWallets($userId); 
+        
+        $settings = $this->budgetModel->getUserSmartSettings($userId); 
 
+        // 2. Lấy danh sách ngân sách
+        $budgets = $this->budgetModel->getBudgetsWithSpending($userId, 'monthly') ?? [];
+
+        // 3. Lấy danh mục và lọc (Chỉ lấy 'expense' và loại bỏ 'Khoản Chi' + ID 1)
+        $categoryModel = $this->model('Category'); 
+        $allCategories = $categoryModel->getAll($userId);
+        
+        $expenseCategories = array_values(array_filter($allCategories, function($cat) {
+            return isset($cat['type']) 
+                   && $cat['type'] === 'expense' 
+                   && $cat['name'] !== 'Khoản Chi' 
+                   && $cat['id'] != 1;
+        }));
+
+        // 4. Truyền toàn bộ sang View
         $this->view('user/budgets', [
             'title' => 'Quản lý ngân sách',
-            'categories' => $categories // <-- Quan trọng: Truyền biến này xuống view
+            'budgets' => $budgets,
+            'categories' => $expenseCategories,
+            'wallets' => $wallets,   // Dùng để vẽ hũ nước
+            'settings' => $settings  // Dùng để hiện %
         ]);
     }
-
     /**
      * API: Lấy danh sách ngân sách
      * URL: /budgets/api_get_all?period=monthly
@@ -183,6 +202,22 @@ class Budgets extends Controllers
 
         Response::successResponse('Success', [
             'trend' => $trendData
+        ]);
+    }
+
+    /**
+     * API: Lấy tỷ lệ 6 hũ (JARS) cho người dùng
+     * URL: /budgets/api_get_jars
+     */
+    public function api_get_jars()
+    {
+        $userId = $this->getCurrentUserId();
+        $jars = $this->budgetModel->getUserJars($userId);
+        $settings = $this->budgetModel->getUserSmartSettings($userId);
+
+        Response::successResponse('Success', [
+            'jars' => $jars,
+            'settings' => $settings
         ]);
     }
 }

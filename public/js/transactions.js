@@ -31,21 +31,31 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             const response = await fetch(`${BASE_URL}/transactions/api_get_transactions?${params}`);
+            
+            // Xử lý an toàn khi response không phải JSON
             const text = await response.text();
             let data = null;
-            try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+            try { 
+                data = JSON.parse(text); 
+            } catch (e) { 
+                console.error("Server response is not JSON:", text);
+                data = null;
+            }
 
-            const respData = data || { success: response.ok, message: text };
+            const respData = data || { success: false, message: 'Lỗi server (Invalid JSON)' };
 
-            if (respData.success) {
+            // [FIX QUAN TRỌNG] Kiểm tra xem respData.data có tồn tại không
+            if (respData.success && respData.data && respData.data.transactions) {
                 renderTransactions(respData.data.transactions);
                 renderPagination(respData.data.pagination);
 
-                // Update URL without reloading page (append sort as query)
                 const newUrl = `${BASE_URL}/transactions/index/${currentFilters.range}/${currentFilters.category}/${currentFilters.page}?sort=${encodeURIComponent(currentFilters.sort)}`;
                 window.history.pushState({ filters: currentFilters }, '', newUrl);
             } else {
-                SmartSpending.showToast(data.message || 'Không thể tải giao dịch', 'error');
+                console.warn("Load transactions failed:", respData);
+                // Nếu lỗi, hiển thị bảng trống thay vì crash
+                renderTransactions([]); 
+                if (respData.message) SmartSpending.showToast(respData.message, 'error');
             }
         } catch (error) {
             console.error('Error loading transactions:', error);
@@ -70,6 +80,23 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (e) {
             // ignore errors (e.g., private mode blocking localStorage)
         }
+    }
+
+    // Apply jar balances to UI elements (same logic as smart-budget listener)
+    function applyJarUpdatesToUI(jars) {
+        try {
+            if (!jars) return;
+            Object.keys(jars).forEach(function (code) {
+                var el = document.querySelector('.jar-balance[data-jar="' + code + '"]');
+                if (el) {
+                    try {
+                        el.textContent = new Intl.NumberFormat('vi-VN').format(parseFloat(jars[code] || 0));
+                    } catch (err) {
+                        el.textContent = (jars[code] || 0);
+                    }
+                }
+            });
+        } catch (e) { /* ignore */ }
     }
 
     /**
@@ -372,16 +399,21 @@ document.addEventListener('DOMContentLoaded', function () {
                                 const text = await response.text();
                                 let json = null;
                                 try { json = text ? JSON.parse(text) : null; } catch (err) { json = null; }
-                                const respData = json || { success: response.ok, message: text };
+                                const respData = data || { success: response.ok, message: text };
 
-                                if (respData.success === true || respData.status === 'success' || response.ok) {
-                                    SmartSpending.showToast(respData.message || 'Xóa giao dịch thành công!', 'success');
-                                    if (respData.data && respData.data.jar_updates) {
-                                        window.dispatchEvent(new CustomEvent('smartbudget:updated', { detail: { jar_updates: respData.data.jar_updates } }));
-                                    }
-                                                    loadTransactions(false);
-                                                    triggerTransactionChange();
-                                } else {
+                                // Defensive: ensure respData.data exists when success is true
+                                if (respData.success && !respData.data) {
+                                    console.warn('loadTransactions: success response missing data, full response:', respData, 'rawText:', text);
+                                    // normalize to safe defaults to avoid exceptions
+                                    respData.data = { transactions: [], pagination: { total_pages: 1, current_page: 1, has_prev: false, has_next: false } };
+                                }
+
+                                if (respData.success) {
+                                    const transactionsList = (respData.data && Array.isArray(respData.data.transactions)) ? respData.data.transactions : [];
+                                    const paginationObj = (respData.data && respData.data.pagination) ? respData.data.pagination : { total_pages: 1, current_page: 1, has_prev: false, has_next: false };
+
+                                    renderTransactions(transactionsList);
+                                    renderPagination(paginationObj);
                                     SmartSpending.showToast(respData.message || 'Không thể xóa giao dịch', 'error');
                                 }
                             } catch (error) {
@@ -575,8 +607,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     addTransactionForm.reset();
                     if (respData.data && respData.data.jar_updates) {
                         window.dispatchEvent(new CustomEvent('smartbudget:updated', { detail: { jar_updates: respData.data.jar_updates } }));
+                        applyJarUpdatesToUI(respData.data.jar_updates);
                     }
-                    setTimeout(() => loadTransactions(false), 500);
+                    loadTransactions(false);
                     triggerTransactionChange();
                 }
             } else {
@@ -666,15 +699,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         const modal = bootstrap.Modal.getInstance(document.getElementById('editTransactionModal'));
                         if (modal) modal.hide();
 
-                        setTimeout(() => {
-                            SmartSpending.showToast(respData.message || 'Cập nhật giao dịch thành công!', 'success');
-                        }, 300);
+                        SmartSpending.showToast(respData.message || 'Cập nhật giao dịch thành công!', 'success');
 
                         if (respData.data && respData.data.jar_updates) {
                             window.dispatchEvent(new CustomEvent('smartbudget:updated', { detail: { jar_updates: respData.data.jar_updates } }));
+                            applyJarUpdatesToUI(respData.data.jar_updates);
                         }
 
-                        setTimeout(() => loadTransactions(false), 500);
+                        loadTransactions(false);
                         triggerTransactionChange();
                     } else {
                         SmartSpending.showToast(respData.message || 'Không thể cập nhật giao dịch', 'error');

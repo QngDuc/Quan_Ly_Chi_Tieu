@@ -37,13 +37,18 @@
 
         document.getElementById('openCreateBudget')?.addEventListener('click', () => {
             const modalEl = document.getElementById('createBudgetModal');
-            if (modalEl) new bootstrap.Modal(modalEl).show();
+            if (modalEl) {
+                // Kiểm tra xem đã có modal chưa, nếu có thì lấy lại dùng, chưa có mới tạo
+                // (Yêu cầu Bootstrap 5+)
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modalInstance.show();
+            }
         });
 
         const createForm = document.getElementById('createBudgetForm');
         if (createForm) createForm.addEventListener('submit', handleCreateBudget);
     }
-// public/js/budgets.js
+    // public/js/budgets.js
 
     // public/js/budgets.js
 
@@ -52,16 +57,16 @@
         try {
             const resp = await fetch(`${BASE_URL}/budgets/api_get_all?period=${currentPeriod}`, { cache: 'no-store', credentials: 'same-origin' });
             if (!resp.ok) throw new Error('API error');
-            
+
             // --- BẮT ĐẦU SỬA ---
             // Đọc text trước để tránh lỗi "stream already read" nếu parse JSON thất bại
             const text = await resp.text();
             let res;
-            try { 
-                res = JSON.parse(text); 
-            } catch (e) { 
-                console.error('Non-JSON response', text); 
-                throw e; 
+            try {
+                res = JSON.parse(text);
+            } catch (e) {
+                console.error('Non-JSON response', text);
+                throw e;
             }
             // --- KẾT THÚC SỬA ---
 
@@ -93,12 +98,12 @@
                         <div class="me-3" style="width: 36px; height: 36px; background: ${b.category_color || '#ccc'}20; color: ${b.category_color || '#666'}; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
                             <i class="fas ${b.category_icon || 'fa-circle'}"></i>
                         </div>
-                        <div><div class="fw-bold text-dark">${b.category_name}</div><small class="text-muted">${(b.category_group||'').toUpperCase()}</small></div>
+                        <div><div class="fw-bold text-dark">${b.category_name}</div><small class="text-muted">${(b.category_group || '').toUpperCase()}</small></div>
                     </div>
                 </td>
                 <td class="text-end">
-                    <div class="fw-bold text-dark">${parseFloat(b.spent||0).toLocaleString('vi-VN')} ₫</div>
-                    <small class="text-muted">/ ${parseFloat(b.amount||0).toLocaleString('vi-VN')} ₫</small>
+                    <div class="fw-bold text-dark">${parseFloat(b.spent || 0).toLocaleString('vi-VN')} ₫</div>
+                    <small class="text-muted">/ ${parseFloat(b.amount || 0).toLocaleString('vi-VN')} ₫</small>
                 </td>
                 <td class="ps-4 align-middle">
                     <div class="progress" style="height: 6px; border-radius: 3px;">
@@ -120,7 +125,7 @@
         btn.disabled = true; btn.innerHTML = 'Đang xử lý...';
 
         const fd = new FormData(e.target);
-        const amountRaw = (fd.get('amount')||'').toString().replace(/\D/g, '');
+        const amountRaw = (fd.get('amount') || '').toString().replace(/\D/g, '');
 
         const data = {
             category_id: fd.get('category_id'),
@@ -131,13 +136,13 @@
         try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             const resp = await fetch(`${BASE_URL}/budgets/api_create`, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-                    body: JSON.stringify(Object.assign({}, data, { csrf_token: csrf }))
-                });
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify(Object.assign({}, data, { csrf_token: csrf }))
+            });
             let res;
-            try { res = await resp.json(); } catch(e) { const t = await resp.text(); console.error('Non-JSON response', t); res = { success:false, message: 'Invalid server response' }; }
+            try { res = await resp.json(); } catch (e) { const t = await resp.text(); console.error('Non-JSON response', t); res = { success: false, message: 'Invalid server response' }; }
 
             if (res.success) {
                 const modal = document.getElementById('createBudgetModal');
@@ -156,129 +161,132 @@
     }
 
     async function loadCharts() {
-        const ctxT = document.getElementById('budgetTrend');
-        if (ctxT) {
-            // Robustly destroy any Chart instances that may be attached to this canvas.
+        function ensureFreshCanvas(canvasEl) {
+            if (!canvasEl) return null;
             try {
-                // Preferred: Chart.getChart should return the chart for this canvas
-                const existingT = Chart.getChart(ctxT);
-                if (existingT && typeof existingT.destroy === 'function') {
-                    try { existingT.destroy(); } catch (e) { console.warn('Error destroying existingT', e); }
+                // Try destroying chart attached to canvas
+                const existing = (typeof Chart !== 'undefined' && Chart.getChart) ? Chart.getChart(canvasEl) : null;
+                if (existing && typeof existing.destroy === 'function') {
+                    try { existing.destroy(); } catch (e) { /* ignore */ }
                 }
             } catch (e) { /* ignore */ }
 
-            // Fallback: iterate global Chart instances (Chart.instances) and destroy those
-            // bound to this canvas id (covers different Chart.js versions/environments)
             try {
-                if (Chart.instances) {
+                // Fallback: destroy any Chart.instances bound to this element
+                if (typeof Chart !== 'undefined' && Chart.instances) {
                     Object.values(Chart.instances).forEach(c => {
                         try {
                             if (!c) return;
-                            const canvasEl = c.canvas && c.canvas.node ? c.canvas.node : c.canvas;
-                            if (!canvasEl) return;
-                            if (canvasEl === ctxT || (canvasEl.id && canvasEl.id === ctxT.id)) {
+                            const canvasNode = c.canvas && c.canvas.node ? c.canvas.node : c.canvas;
+                            if (!canvasNode) return;
+                            if (canvasNode === canvasEl || (canvasNode.id && canvasNode.id === canvasEl.id)) {
                                 if (typeof c.destroy === 'function') c.destroy();
                             }
-                        } catch (ee) { /* ignore per-instance errors */ }
+                        } catch (ee) { /* ignore */ }
                     });
                 }
             } catch (e) { /* ignore */ }
 
-            if (trendChartInstance) { try { trendChartInstance.destroy(); } catch(e){} trendChartInstance = null; }
+            // Replace canvas node with a clone to ensure no internal Chart references remain
+            try {
+                const newCanvas = canvasEl.cloneNode(true);
+                canvasEl.parentNode.replaceChild(newCanvas, canvasEl);
+                return newCanvas;
+            } catch (e) {
+                return canvasEl;
+            }
+        }
+
+        const freshTrend = ensureFreshCanvas(document.getElementById('budgetTrend'));
+        if (freshTrend) {
+            if (trendChartInstance) { try { trendChartInstance.destroy(); } catch (e) {} trendChartInstance = null; }
             try {
                 const resp = await fetch(`${BASE_URL}/budgets/api_get_trend`, { cache: 'no-store' });
                 if (!resp.ok) throw new Error('API error');
                 const res = await resp.json();
                 if (res.success && res.data && res.data.trend) {
-                    trendChartInstance = new Chart(ctxT, {
+                    const ctxReal = (freshTrend.getContext && freshTrend.getContext('2d')) ? freshTrend.getContext('2d') : freshTrend;
+                    trendChartInstance = new Chart(ctxReal, {
                         type: 'bar',
                         data: {
                             labels: res.data.trend.labels || [],
                             datasets: [
-                                { label: 'Ngân sách', data: (res.data.trend.budget||[]).map(Number), backgroundColor: '#e2e8f0', borderRadius: 4 },
-                                { label: 'Thực chi', data: (res.data.trend.spent||[]).map(Number), backgroundColor: '#3b82f6', borderRadius: 4 }
+                                { label: 'Ngân sách', data: (res.data.trend.budget || []).map(Number), backgroundColor: '#e2e8f0', borderRadius: 4 },
+                                { label: 'Thực chi', data: (res.data.trend.spent || []).map(Number), backgroundColor: '#3b82f6', borderRadius: 4 }
                             ]
                         },
-                        options: { responsive:true, plugins:{legend:{position:'bottom'}}, scales:{x:{grid:{display:false}}, y:{beginAtZero:true}} }
+                        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
                     });
                 }
             } catch (e) { console.warn('loadCharts trend error', e); }
         }
 
-        const ctxP = document.getElementById('budgetPie');
-        if (ctxP) {
-            // destroy any Chart instance already bound to this canvas (covers external scripts)
+        const freshPie = ensureFreshCanvas(document.getElementById('budgetPie'));
+        if (freshPie) {
+            if (pieChartInstance) { try { pieChartInstance.destroy(); } catch (e) { } pieChartInstance = null; }
+            // Improved doughnut appearance — fetch actual jars data from server
             try {
-                const existingP = Chart.getChart(ctxP);
-                if (existingP && typeof existingP.destroy === 'function') { try { existingP.destroy(); } catch(e){ console.warn('destroy existingP', e); } }
-            } catch (e) { /* ignore */ }
-            try {
-                if (Chart.instances) {
-                    Object.values(Chart.instances).forEach(c => {
-                        try {
-                            if (!c) return;
-                            const canvasEl = c.canvas && c.canvas.node ? c.canvas.node : c.canvas;
-                            if (!canvasEl) return;
-                            if (canvasEl === ctxP || (canvasEl.id && canvasEl.id === ctxP.id)) {
-                                if (typeof c.destroy === 'function') c.destroy();
-                            }
-                        } catch (ee) {}
-                    });
+                const resp = await fetch(`${BASE_URL}/budgets/api_get_jars`, { cache: 'no-store', credentials: 'same-origin' });
+                let jarsData = [55, 10, 35];
+                if (resp.ok) {
+                    try {
+                        const jr = await resp.json();
+                        if (jr && jr.success && jr.data && Array.isArray(jr.data.jars)) jarsData = jr.data.jars.slice(0,3).map(Number);
+                    } catch (e) { /* fall back to defaults */ }
                 }
-            } catch (e) {}
-            if (pieChartInstance) { try { pieChartInstance.destroy(); } catch(e){} pieChartInstance = null; }
-            // Improved doughnut appearance
-            pieChartInstance = new Chart(ctxP, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Thiết yếu', 'Hưởng thụ', 'Tiết kiệm'],
-                    datasets: [{
-                        data: [55, 10, 35],
-                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-                        borderWidth: 4,
-                        hoverOffset: 8,
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    cutout: '50%',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    aspectRatio: 1.2,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                boxWidth: 10,
-                                padding: 12
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const data = context.chart.data.datasets[0].data;
-                                    const total = data.reduce((sum, v) => sum + Number(v || 0), 0);
-                                    const value = Number(context.raw || 0);
-                                    const pct = total ? ((value / total) * 100).toFixed(1) : 0;
-                                    return context.label + ': ' + formatCurrencyLocal(value) + ' (' + pct + '%)';
+
+                const labels = ['Thiết yếu', 'Hưởng thụ', 'Tiết kiệm'];
+                const colors = ['#ef4444', '#f59e0b', '#3b82f6'];
+                const ctxPieReal = (freshPie.getContext && freshPie.getContext('2d')) ? freshPie.getContext('2d') : freshPie;
+                pieChartInstance = new Chart(ctxPieReal, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: jarsData,
+                            backgroundColor: colors,
+                            borderWidth: 4,
+                            hoverOffset: 8,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        cutout: '50%',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        aspectRatio: 1.2,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 10, padding: 12 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const data = context.chart.data.datasets[0].data;
+                                        const total = data.reduce((sum, v) => sum + Number(v || 0), 0);
+                                        const value = Number(context.raw || 0);
+                                        const pct = total ? ((value / total) * 100).toFixed(1) : 0;
+                                        return context.label + ': ' + value + '% (' + pct + '%)';
+                                    }
                                 }
                             }
-                        }
-                    },
-                    layout: { padding: { left: 10, right: 10, top: 6, bottom: 6 } },
-                    elements: { arc: { borderWidth: 0 } }
-                }
-            });
+                        },
+                        layout: { padding: { left: 10, right: 10, top: 6, bottom: 6 } },
+                        elements: { arc: { borderWidth: 0 } }
+                    }
+                });
+            } catch (e) {
+                console.warn('loadCharts pie error', e);
+            }
         }
     }
 
-    window.deleteBudget = async function(id) {
-        if(!confirm('Xóa ngân sách này?')) return;
+    window.deleteBudget = async function (id) {
+        if (!confirm('Xóa ngân sách này?')) return;
         try {
-            await fetch(`${BASE_URL}/budgets/api_delete/${id}`, { method:'POST', headers:{'X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content} });
-        } catch(e) { console.error(e); }
+            await fetch(`${BASE_URL}/budgets/api_delete/${id}`, { method: 'POST', headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content } });
+        } catch (e) { console.error(e); }
         loadBudgets();
     };
 

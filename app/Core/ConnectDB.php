@@ -11,11 +11,9 @@ class ConnectDB
 
     public function __construct()
     {
-        // Load database configuration
         $config = require dirname(__DIR__, 2) . '/config/database.php';
-
         $this->host = $config['host'] ?? 'localhost';
-        $this->dbname = $config['dbname'] ?? 'mydatabase';
+        $this->dbname = $config['dbname'] ?? 'quan_ly_chi_tieu';
         $this->username = $config['username'] ?? 'root';
         $this->password = $config['password'] ?? '';
 
@@ -25,7 +23,9 @@ class ConnectDB
             $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             $this->connection->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            die("Database Connection Error: " . $e->getMessage());
+            // [BẢO MẬT] Không echo lỗi chi tiết ra màn hình
+            error_log("DB Connection Error: " . $e->getMessage()); // Ghi vào log server
+            die("Hệ thống đang bảo trì kết nối cơ sở dữ liệu. Vui lòng quay lại sau."); 
         }
     }
 

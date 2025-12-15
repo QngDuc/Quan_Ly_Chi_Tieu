@@ -132,15 +132,17 @@ class User
 
     /**
      * Check if user is super admin
-     */
-    public function isSuperAdmin($userId)
+     */public function isSuperAdmin($userId)
     {
-        $stmt = $this->db->prepare("SELECT is_super_admin FROM users WHERE id = ?");
+        // Cách 1: Check hardcode ID admin đầu tiên
+        // Cách 2: Nếu sau này bạn thêm cột is_super_admin vào DB thì đổi lại code cũ
+        $stmt = $this->db->prepare("SELECT id, role FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $user && $user['is_super_admin'] == 1;
+        
+        // Admin có ID = 1 là Super Admin
+        return $user && $user['role'] === 'admin' && $user['id'] == 1;
     }
-
     public function getUserByUsername($username)
     {
         $stmt = $this->db->prepare("SELECT * FROM users WHERE username = ?");

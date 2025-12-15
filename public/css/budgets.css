@@ -1,379 +1,142 @@
+/* === VARIABLES === */
 :root {
     --primary: #1abc9c;
-    --primary-dark: #16a085;
-    --primary-light: #e0f2f1;
     --text-dark: #1e293b;
     --text-muted: #64748b;
-    --bg-page: #f1f5f9;
-    --card-bg: #ffffff;
     --border-radius: 16px;
-    --btn-radius: 12px;
     --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
     --shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
-/* === HEADER STYLES === */
+/* === GENERAL PAGE STYLES === */
 .page-title {
     font-size: 1.5rem;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text-dark);
-    line-height: 1.2;
+    letter-spacing: -0.5px;
 }
-
 .page-subtitle {
     font-size: 0.9rem;
     color: var(--text-muted);
-    margin: 0;
 }
-
 .header-icon-box {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, var(--primary), #4fd1c5);
-    color: white;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    box-shadow: 0 4px 10px rgba(26, 188, 156, 0.3);
-}
-
-/* === CONTROLS (Thẳng hàng, đều nhau) === */
-.budget-controls {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-    max-width: 450px;
-}
-
-.control-wrapper {
-    flex: 1;
-    position: relative;
-}
-
-.control-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--primary);
-    z-index: 2;
-    pointer-events: none;
-}
-
-.custom-control {
-    width: 100%;
-    height: 48px !important;
-    padding-left: 36px !important;
-    border: 1px solid #e2e8f0;
-    border-radius: var(--btn-radius);
-    background-color: var(--card-bg);
-    color: var(--text-dark);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.custom-control:hover,
-.custom-control:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.1);
-}
-
-.custom-btn-add {
-    flex: 1;
-    height: 48px !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    border-radius: var(--btn-radius);
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    border: none;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(26, 188, 156, 0.25);
-    white-space: nowrap;
-}
-
-.custom-btn-add:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(26, 188, 156, 0.35);
-}
-
-/* === CARDS (Bo góc, bóng đổ mềm) === */
-.summary-card.main-summary {
-    background: linear-gradient(135deg, var(--primary) 0%, #0d9488 100%);
-    border: none;
-    border-radius: var(--border-radius);
-    color: white;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3);
-}
-
-.circle-decoration {
-    position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 100px;
-    height: 100px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-}
-
-.border-white-opacity {
-    border-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-.list-card,
-.chart-card {
-    border-radius: var(--border-radius);
-    background: var(--card-bg);
-    box-shadow: var(--shadow-soft) !important;
-    transition: box-shadow 0.3s;
-}
-
-.list-card:hover {
-    box-shadow: var(--shadow-hover) !important;
-}
-
-/* Small summary cards used at the top */
-.summary-small {
     border-radius: 12px;
-    padding: 0;
-    box-shadow: var(--shadow-soft);
-    min-height: 86px;
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 
-.summary-small .card-body {
-    padding: 14px 18px;
-    width: 100%;
-}
-
-.summary-small p.small {
-    margin-bottom: 6px;
-    color: var(--text-muted);
-}
-
-.summary-small h4 {
-    color: var(--text-dark);
-    font-size: 1.15rem;
-    margin: 0.1rem 0;
-}
-
-/* Make the Add button align with the small cards on mobile */
-.budgets-header .custom-btn-add {
-    height: 44px;
-    padding: 0 14px;
-}
-
-/* Table internal scroll so header/footer stay visible */
-.table-responsive {
-    max-height: 420px;
-    overflow: auto;
-}
-
-/* Action buttons contrast */
-.btn-action-round {
-    color: #6b7280;
-}
-
-.btn-action-round:hover {
-    color: var(--primary);
-}
-
-.chart-container {
-    height: 240px;
+/* === JAR CARDS (HIỆU ỨNG HŨ NƯỚC) === */
+.jar-card {
     position: relative;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 20px;
+    background: #fff;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+    min-height: 180px;
 }
 
-/* === TABLE STYLES (Thoáng, sạch) === */
-.custom-table thead th {
+.jar-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+
+/* Hiệu ứng nước dâng */
+.jar-bg-water {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+    opacity: 0.15;
+    transition: height 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0 0 20px 20px;
+}
+
+/* Icon box trong card */
+.jar-icon-box {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.jar-card:hover .jar-icon-box {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* === MÀU SẮC 6 HŨ (JARS COLORS) === */
+/* 1. NEC - Thiết yếu (Đỏ) */
+.bg-nec { background-color: #ef4444; }
+.text-nec { color: #ef4444; }
+.bg-nec-subtle { background-color: #fee2e2; color: #ef4444; }
+
+/* 2. FFA - Tự do TC (Vàng/Cam) */
+.bg-ffa { background-color: #f59e0b; }
+.text-ffa { color: #f59e0b; }
+.bg-ffa-subtle { background-color: #fef3c7; color: #d97706; }
+
+/* 3. LTSS - Tiết kiệm dài hạn (Xanh dương) */
+.bg-ltss { background-color: #3b82f6; }
+.text-ltss { color: #3b82f6; }
+.bg-ltss-subtle { background-color: #dbeafe; color: #2563eb; }
+
+/* 4. EDU - Giáo dục (Xanh Cyan) */
+.bg-edu { background-color: #06b6d4; }
+.text-edu { color: #06b6d4; }
+.bg-edu-subtle { background-color: #cffafe; color: #0891b2; }
+
+/* 5. PLAY - Hưởng thụ (Hồng/Tím) */
+.bg-play { background-color: #ec4899; }
+.text-play { color: #ec4899; }
+.bg-play-subtle { background-color: #fce7f3; color: #db2777; }
+
+/* 6. GIVE - Cho đi (Xanh lá) */
+.bg-give { background-color: #10b981; }
+.text-give { color: #10b981; }
+.bg-give-subtle { background-color: #d1fae5; color: #059669; }
+
+
+/* === BUDGET TABLE LIST === */
+.list-card {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.table-hover tbody tr:hover {
     background-color: #f8fafc;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid #e2e8f0;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
 }
 
-.custom-table tbody td {
-    padding: 0.85rem 1rem;
+.progress {
+    background-color: #f1f5f9;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* === INPUT RANGE (SLIDER) === */
+input[type=range] {
+    accent-color: var(--primary); 
+    cursor: pointer;
+}
+
+/* === MODAL STYLES === */
+.modal-content {
+    border: none;
+    border-radius: 20px;
+}
+.modal-header {
     border-bottom: 1px solid #f1f5f9;
 }
-
-.custom-table tbody tr:hover {
-    background-color: #f8fafc;
-}
-
-.budget-icon-wrapper {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.budget-info-name {
-    font-weight: 600;
-    color: var(--text-dark);
-    display: block;
-    line-height: 1.2;
-    margin-bottom: 2px;
-}
-
-.budget-info-limit {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-/* PROGRESS BAR (Tròn, hiện đại) */
-.progress-modern-wrapper {
-    height: 12px;
-    background-color: #f1f5f9;
-    border-radius: 20px;
-    overflow: hidden;
-    margin-top: 8px;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.progress-modern-bar {
-    height: 100%;
-    border-radius: 20px;
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.bg-gradient-success {
-    background: linear-gradient(90deg, #4ade80, #22c55e);
-}
-
-.bg-gradient-warning {
-    background: linear-gradient(90deg, #facc15, #eab308);
-}
-
-.bg-gradient-danger {
-    background: linear-gradient(90deg, #f87171, #ef4444);
-}
-
-/* ACTIONS */
-.btn-action-round {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: #94a3b8;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-action-round:hover {
-    background-color: #f1f5f9;
-    color: var(--primary);
-    transform: scale(1.1);
-}
-
-.btn-action-round.delete:hover {
-    background-color: #fee2e2;
-    color: #ef4444;
-}
-
-/* Pagination styles */
-.pagination {
-    margin: 0;
-}
-
-.pagination .page-item .page-link {
-    cursor: pointer;
-    border-radius: 6px;
-    margin: 0 4px;
-    padding: 6px 10px;
-}
-
-.pagination .page-item.active .page-link {
-    background: var(--primary);
-    color: #fff;
+.form-control:focus, .form-select:focus {
     border-color: var(--primary);
-}
-
-.pagination .page-item.disabled .page-link {
-    opacity: 0.5;
-    cursor: default;
-}
-
-/* small percent label under progress */
-.custom-table .small.mt-1 {
-    margin-top: 6px !important;
-}
-
-/* EMPTY STATE */
-.empty-icon-wrapper {
-    width: 80px;
-    height: 80px;
-    background-color: #f1f5f9;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    font-size: 2rem;
-    color: #cbd5e1;
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .budgets-header .row {
-        flex-direction: column;
-    }
-
-    .budget-controls {
-        max-width: 100%;
-        margin-top: 10px;
-    }
-}
-
-/* Biểu đồ nằm trên nhau, full width như main */
-.charts-row {
-    display: block;
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
-    padding-left: 32px;
-    padding-right: 32px;
-    box-sizing: border-box;
-}
-
-.chart-card {
-    flex: 1 1 0;
-    min-width: 0;
-}
-
-.charts-row {
-    display: flex;
-    gap: 24px;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding-left: 24px;
-    padding-right: 24px;
-    box-sizing: border-box;
-}
-
-.chart-container {
-    height: 240px;
-    position: relative;
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
+    box-shadow: 0 0 0 4px rgba(26, 188, 156, 0.1);
 }

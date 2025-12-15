@@ -61,7 +61,7 @@ $this->partial('header');
                             <th>Danh mục</th>
                             <th>Mô tả</th>
                             <th style="text-align: right;">Số tiền</th>
-                            <!-- <th style="text-align: center;">Loại</th> -->
+                            <th style="text-align: center;">Loại</th>
                             <th style="text-align: center;">Hành động</th>
                         </tr>
                     </thead>
@@ -92,13 +92,13 @@ $this->partial('header');
                                         <span class="amount amount-expense">- <?php echo number_format(abs($t['amount']), 0, ',', '.'); ?> ₫</span>
                                     <?php endif; ?>
                                 </td>
-                                <!-- <td class="transactions-type-badge">
+                                <td class="transactions-type-badge">
                                     <?php if ($t['amount'] > 0): ?>
                                         <span class="transactions-badge-income">Thu nhập</span>
                                     <?php else: ?>
                                         <span class="transactions-badge-expense">Chi tiêu</span>
                                     <?php endif; ?>
-                                </td> -->
+                                </td>
                                 <td class="transactions-actions">
                                     <button type="button" 
                                             class="btn btn-sm btn-edit-transaction transactions-btn-edit" 

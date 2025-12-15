@@ -336,7 +336,8 @@ class Reports extends Controllers
             $endDate = date('Y-m-t', strtotime($startDate));
 
             // Get totals for this month
-            $result = $this->transactionModel->getMonthTotals($userId, $startDate, $endDate);
+            // Use Transaction::getTotalsForPeriod which returns ['income'=>..., 'expense'=>...]
+            $result = $this->transactionModel->getTotalsForPeriod($userId, $startDate, $endDate);
 
             $months[] = $monthName;
             $income[] = floatval($result['income'] ?? 0);
